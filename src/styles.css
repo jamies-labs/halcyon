@@ -1,0 +1,4 @@
+:root { --bg:#050807; --fg:#9ef0b6; --dim:#3a5f46; --warn:#f0b46a; --err:#f06a6a; --panel:#0a120d; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:'Cascadia Mono','SF Mono',Consolas,monospace; }
+.shell { max-width:1080px; margin:0 auto; padding:24px; }
