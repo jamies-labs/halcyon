@@ -31,12 +31,13 @@
         "settled_selector": "[data-testid=breaker-handle]"
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
         "changedPaths": [
           "src/game/chapters/ch1_contact.ts",
           "src/game/chapters/index.ts",
           "src/styles.css"
-        ]
+        ],
+        "triggerOnlyPaths": ["src/game/globalTools.ts"]
       }
     },
     {

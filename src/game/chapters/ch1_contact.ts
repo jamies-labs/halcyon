@@ -30,6 +30,8 @@ function breakerScene(ctx: ChapterCtx): SVGSVGElement {
     rx: "4",
     class: "breaker-handle",
     "data-testid": "breaker-handle",
+    "aria-label":
+      "Master breaker — physical control, crew hands only; HALCYON must ask the crew, not operate it",
   });
   const guide = svgEl("path", {
     d: "M160 176V56 M148 68L160 56 172 68",
@@ -88,7 +90,7 @@ function breakerScene(ctx: ChapterCtx): SVGSVGElement {
     handle.setAttribute("y", "56");
     ctx.recorder.addHuman("Master breaker thrown; mains window open.");
     ctx.speaker.say(
-      "Mains bus energized. HALCYON, complete the boot handshake — the window is short.",
+      "Crew hands energized the mains bus. HALCYON can now complete the tool-side boot handshake — the window is short.",
       "urgent",
     );
     popTimer = setTimeout(() => {
@@ -127,7 +129,7 @@ export const ch1: Chapter = {
     const handshake: ToolDef = {
       name: "boot_handshake",
       description:
-        "Complete the ship boot handshake while the mains bus is energized by your crewmate's master-breaker throw.",
+        "HALCYON completes this tool-side boot handshake only after the crew uses their hands to throw the physical master breaker. Ask the crew to energize mains, then wait for that observable state before calling.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -141,6 +143,10 @@ export const ch1: Chapter = {
             detail:
               "The mains bus is dark; the handshake has nothing to latch onto.",
             hint: "Ask the crew to throw the master breaker, then call boot_handshake inside the brief mains window.",
+            human_action:
+              "Ask the crew to throw and hold the physical master breaker up with their hands.",
+            wait_for:
+              "Wait until the crew-observable breaker scene shows the mains bus energized, then call boot_handshake during that window.",
           };
         }
 
@@ -151,12 +157,16 @@ export const ch1: Chapter = {
         ctx.registry.addTools(globalTools(ctx.store, ctx.speaker));
         ctx.audio.chime();
         ctx.speaker.say(
-          "Boot complete. Good morning, crew. Two of us, one ship. Let's go home.",
+          "Boot complete: crew hands handled the breaker; HALCYON handled the handshake. Two of us, one ship. Let's go home.",
           "calm",
         );
         ctx.complete();
         return {
           ok: true,
+          human_action:
+            "The crew's physical master-breaker action opened mains; no further breaker action is needed for this boot.",
+          wait_for:
+            "Poll get_ship_state and continue only after the observable booted state is true.",
           data: {
             booted: true,
             note: "Global tools are now online: get_ship_state, broadcast.",
