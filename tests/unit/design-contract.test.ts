@@ -63,7 +63,7 @@ describe("design contract activation", () => {
       }>;
     };
     const chapter = parsed.scenarios.find(
-      (scenario) => scenario.variant === "chapter-one-unbuilt",
+      (scenario) => scenario.variant === "chapter-one-contact",
     );
     const recorder = parsed.scenarios.find(
       (scenario) => scenario.variant === "recorder-open",
@@ -73,9 +73,9 @@ describe("design contract activation", () => {
       chapter,
       "chapter post-start scenario must be present",
     ).toBeDefined();
-    expect(chapter?.ready_selector).toBe("[data-testid=chapter-missing]");
+    expect(chapter?.ready_selector).toBe("[data-testid=breaker-handle]");
     expect(chapter?.setup?.settled_selector).toBe(
-      "[data-testid=chapter-missing]",
+      "[data-testid=breaker-handle]",
     );
     expect(
       recorder,

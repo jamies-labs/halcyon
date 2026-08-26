@@ -5,33 +5,22 @@
       "route": "/",
       "state": "resolved",
       "variant": "gate-visible",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=gate]",
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/main.ts",
-          "src/styles.css"
-        ],
-        "triggerOnlyPaths": [
-          "DESIGN.md"
-        ]
+        "changedPaths": ["src/main.ts", "src/styles.css"],
+        "triggerOnlyPaths": ["DESIGN.md"]
       }
     },
     {
       "route": "/",
       "state": "resolved",
-      "variant": "chapter-one-unbuilt",
-      "viewports": [
-        375,
-        1280
-      ],
+      "variant": "chapter-one-contact",
+      "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=chapter-missing]",
+      "ready_selector": "[data-testid=breaker-handle]",
       "setup": {
         "interactions": [
           {
@@ -39,16 +28,14 @@
             "selector": "[data-testid=gate-start]"
           }
         ],
-        "settled_selector": "[data-testid=chapter-missing]"
+        "settled_selector": "[data-testid=breaker-handle]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
         "changedPaths": [
-          "src/ui/dom.ts",
-          "src/ui/gate.ts",
-          "src/ui/chapterSelect.ts",
-          "src/game/chapters/types.ts",
-          "src/game/chapters/index.ts"
+          "src/game/chapters/ch1_contact.ts",
+          "src/game/chapters/index.ts",
+          "src/styles.css"
         ]
       }
     },
@@ -56,10 +43,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "recorder-open",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-panel]",
       "setup": {
@@ -76,13 +60,7 @@
         "settled_selector": "[data-testid=recorder-panel]"
       },
       "covers": {
-        "requirementKeys": [
-          "AC3",
-          "AC0",
-          "AC1",
-          "AC2",
-          "AC4"
-        ],
+        "requirementKeys": [],
         "changedPaths": [
           "src/ui/speaker.ts",
           "src/ui/recorder.ts",

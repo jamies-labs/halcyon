@@ -18,6 +18,7 @@
   --space-4: 2.5rem;
   --size-content: 67.5rem;
   --size-hit-target: 2.75rem;
+  --size-breaker-scene: 20rem;
   --radius-control: 0.375rem;
   --radius-surface: 0.75rem;
   --border-width: 0.0625rem;
@@ -270,6 +271,49 @@ dd {
   margin: 0;
   color: var(--color-muted);
   line-height: 1.5;
+}
+
+.contact-scene {
+  display: grid;
+  justify-items: center;
+  max-width: var(--size-content);
+  padding-block: var(--space-3);
+}
+
+.breaker-scene {
+  display: block;
+  width: min(100%, var(--size-breaker-scene));
+  height: auto;
+  overflow: visible;
+}
+
+.breaker-track {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 2;
+}
+
+.breaker-guide {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.breaker-handle {
+  fill: var(--color-surface-raised);
+  stroke: var(--color-accent-strong);
+  stroke-width: 2;
+  cursor: grab;
+  touch-action: none;
+  transition: y var(--motion-fast);
+}
+
+.breaker-handle.is-grabbed {
+  cursor: grabbing;
+  transition: none;
 }
 
 .speaker {
