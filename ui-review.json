@@ -157,6 +157,36 @@
           "src/styles.css"
         ]
       }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "chapter-five-two-man",
+      "viewports": [375, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=vent-left]",
+      "setup": {
+        "interactions": [
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=goto-ch5]"
+          }
+        ],
+        "settled_selector": "[data-testid=vent-left]"
+      },
+      "covers": {
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "changedPaths": [
+          "src/game/chapters/ch5_twoman.ts",
+          "src/game/chapters/index.ts",
+          "src/styles.css"
+        ],
+        "triggerOnlyPaths": []
+      }
     }
   ]
 }

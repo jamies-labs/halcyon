@@ -86,4 +86,39 @@ describe("design contract activation", () => {
       "[data-testid=recorder-panel]",
     );
   });
+
+  it("declares the Chapter Five two-man review surface at both supported viewports", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        route: string;
+        variant?: string;
+        viewports: number[];
+        ready_selector: string;
+        setup?: { settled_selector?: string };
+        covers: { changedPaths: string[] };
+      }>;
+    };
+    const twoMan = parsed.scenarios.find(
+      (scenario) => scenario.variant === "chapter-five-two-man",
+    );
+
+    expect(
+      twoMan,
+      "Chapter Five review scenario must be present",
+    ).toBeDefined();
+    expect(twoMan?.route).toBe("/");
+    expect(twoMan?.viewports).toEqual(expect.arrayContaining([375, 1280]));
+    expect(twoMan?.ready_selector).toBe("[data-testid=vent-left]");
+    expect(twoMan?.setup?.settled_selector).toBe("[data-testid=vent-left]");
+    expect(twoMan?.covers.changedPaths).toEqual(
+      expect.arrayContaining([
+        "src/game/chapters/ch5_twoman.ts",
+        "src/game/chapters/index.ts",
+        "src/styles.css",
+      ]),
+    );
+  });
 });
