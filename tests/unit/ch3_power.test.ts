@@ -35,6 +35,12 @@ describe("Chapter 3 Power", () => {
     );
     const route = tools.find((tool) => tool.name === "route_power");
     expect(telemetry?.readOnly).toBe(true);
+    expect(telemetry?.description).toBe(
+      "HALCYON reads power telemetry and allocates the route; the crew physically seats popped fuses and holds the bus stable. The report includes the total budget in amps and current draw per subsystem. Minimum requirements per subsystem are not documented — the bus reports a brownout when a route leaves one short.",
+    );
+    expect(route?.description).toBe(
+      "HALCYON allocates amps to subsystems within the 60A budget; the crew physically seats every popped fuse and holds the bus stable. Omitted subsystems get 0A, and re-routing while the crew holds a fuse pops the set again.",
+    );
     expect(await telemetry!.execute({})).toEqual({
       ok: true,
       data: {

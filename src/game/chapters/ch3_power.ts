@@ -55,7 +55,7 @@ function startStability(ctx: ChapterCtx, version: number): void {
   if (stableTimer !== null || version !== routeVersion) return;
 
   ctx.speaker.say(
-    "All fuses seated. Holding the bus steady… do not sneeze.",
+    "Crew seated every fuse. HALCYON is holding the bus steady now… do not sneeze.",
     "dry",
   );
   stableTimer = window.setTimeout(() => {
@@ -91,7 +91,7 @@ function renderFuses(ctx: ChapterCtx, version: number): void {
         type: "button",
         class: "fuse",
         "data-fuse": subsystem,
-        "aria-label": `Hold ${subsystem.replace("_", " ")} fuse until it seats`,
+        "aria-label": `Hold ${subsystem.replace("_", " ")} fuse until it seats — physical control, crew hands only; HALCYON must ask the crew, not operate it`,
       },
       `${subsystem} ×`,
     );
@@ -157,7 +157,7 @@ export const ch3: Chapter = {
       {
         name: "read_power_telemetry",
         description:
-          "Read the power bus: total budget in amps and the current draw per subsystem. Minimum requirements per subsystem are not documented — the bus reports a brownout when a route leaves one short.",
+          "HALCYON reads power telemetry and allocates the route; the crew physically seats popped fuses and holds the bus stable. The report includes the total budget in amps and current draw per subsystem. Minimum requirements per subsystem are not documented — the bus reports a brownout when a route leaves one short.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -176,7 +176,7 @@ export const ch3: Chapter = {
       {
         name: "route_power",
         description:
-          "Route amps to subsystems within the 60A budget. Omitted subsystems get 0A. A valid route pops the physical fuses; your crewmate must re-seat every powered fuse, then the bus must hold stable. Re-routing mid-hold pops the fuses again.",
+          "HALCYON allocates amps to subsystems within the 60A budget; the crew physically seats every popped fuse and holds the bus stable. Omitted subsystems get 0A, and re-routing while the crew holds a fuse pops the set again.",
         inputSchema: {
           type: "object",
           required: ["allocations"],
@@ -208,6 +208,10 @@ export const ch3: Chapter = {
                 code: "DUPLICATE_SUBSYSTEM",
                 detail: `${allocation.subsystem} appears twice.`,
                 hint: "List each subsystem at most once.",
+                human_action:
+                  "Ask the crew to keep hands clear of the physical fuses until HALCYON has a valid route.",
+                wait_for:
+                  "Wait for HALCYON to submit a valid non-duplicated allocation before the crew seats any fuse.",
               };
             }
             seen.add(allocation.subsystem);
@@ -223,6 +227,10 @@ export const ch3: Chapter = {
               code: "OVER_BUDGET",
               detail: `Requested ${total}A of a ${BUDGET_AMPS}A budget.`,
               hint: "Reduce the total to 60A or less.",
+              human_action:
+                "Ask the crew to keep hands clear of the physical fuses until HALCYON has a valid route.",
+              wait_for:
+                "Wait for HALCYON to submit an allocation within the 60A budget before the crew seats any fuse.",
             };
           }
 
@@ -234,6 +242,10 @@ export const ch3: Chapter = {
                 code: "BROWNOUT",
                 detail: `${subsystem} browns out below ${minimum}A (got ${supplied}A).`,
                 hint: `Give ${subsystem} at least ${minimum}A and route again. Other subsystems may have minimums too.`,
+                human_action:
+                  "Ask the crew to keep hands clear of the physical fuses until HALCYON has a stable route.",
+                wait_for:
+                  "Wait for HALCYON to correct the brownout and submit a valid route before the crew seats any fuse.",
               };
             }
           }
@@ -250,6 +262,10 @@ export const ch3: Chapter = {
           ctx.recorder.addHuman("fuses popped — awaiting re-seat");
           return {
             ok: true,
+            human_action:
+              "Ask the crew to physically seat every popped powered fuse, holding each until it clicks home.",
+            wait_for:
+              "Wait until every powered fuse is seated and the bus has held stable before continuing.",
             data: {
               accepted: pending,
               next: "Crew must hold each popped fuse until it clicks, then the bus holds stable.",
@@ -276,7 +292,7 @@ export const ch3: Chapter = {
       fuseTray,
     );
     ctx.speaker.say(
-      "I can route power but the fuses are physical, crew. I route, you seat. Life support first.",
+      "HALCYON routes power; crew physically seats each popped fuse and holds the bus stable. Life support first.",
       "calm",
     );
   },
