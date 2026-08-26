@@ -362,6 +362,7 @@ dd {
 .fuse-tray {
   display: flex;
   flex-wrap: wrap;
+  min-height: var(--size-hit-target);
   gap: var(--space-1);
   margin-top: var(--space-2);
 }
