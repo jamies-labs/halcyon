@@ -5,11 +5,14 @@ type Invocation = {
     ok: boolean;
     code?: string;
     data?: unknown;
+    human_action?: string;
+    wait_for?: string;
   };
 };
 
 type RegisteredTool = {
   name: string;
+  description?: string;
   annotations?: { readOnlyHint?: boolean };
 };
 
@@ -17,12 +20,13 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/?fast=1&sim=1&ch=2");
 });
 
-test("Manifest registers read_damage_manifest with the real read-only host annotation", async ({
+test("Manifest tool descriptions declare the agent and crew roles", async ({
   page,
 }) => {
   await page.addInitScript(() => {
     const registeredTools: Array<{
       name: string;
+      description?: string;
       annotations?: { readOnlyHint?: boolean };
     }> = [];
     Object.defineProperty(window, "__manifestRegisteredTools", {
@@ -34,10 +38,12 @@ test("Manifest registers read_damage_manifest with the real read-only host annot
       value: {
         registerTool(tool: {
           name: string;
+          description?: string;
           annotations?: { readOnlyHint?: boolean };
         }) {
           registeredTools.push({
             name: tool.name,
+            description: tool.description,
             annotations: tool.annotations,
           });
           return { unregister() {} };
@@ -59,7 +65,20 @@ test("Manifest registers read_damage_manifest with the real read-only host annot
   expect(manifestTool).toEqual({
     name: "read_damage_manifest",
     annotations: { readOnlyHint: true },
+    description:
+      "HALCYON reads the internal damage manifest and flags damaged sections; the crew physically confirms reachable hatch sections on the deck map.",
   });
+
+  const flagTool = await page.evaluate(() =>
+    (
+      window as typeof window & {
+        __manifestRegisteredTools: RegisteredTool[];
+      }
+    ).__manifestRegisteredTools.find((tool) => tool.name === "flag_section"),
+  );
+  expect(flagTool?.description).toBe(
+    "HALCYON flags a damaged hull section for repair triage; the crew physically confirms that reachable hatch section on the deck map.",
+  );
 });
 
 test("manifest lists all six sections with damage status, never reachability", async ({
@@ -109,26 +128,67 @@ test("manifest lists all six sections with damage status, never reachability", a
   expect(JSON.stringify(data)).not.toContain("reachable");
 });
 
-test("flagging a healthy section coaches with SECTION_NOMINAL", async ({
+test("flag section returns crew handoff fields for accepted and rejected triage", async ({
   page,
 }) => {
-  const invocation = (await page.evaluate(() =>
-    window.halcyonSim.invoke("flag_section", { section_id: "s1", priority: 1 }),
-  )) as Invocation;
+  const invoke = async (sectionId: string): Promise<Invocation> =>
+    (await page.evaluate(
+      (id) =>
+        window.halcyonSim.invoke("flag_section", {
+          section_id: id,
+          priority: 1,
+        }),
+      sectionId,
+    )) as Invocation;
 
-  expect(invocation.outcome.ok).toBe(false);
-  expect(invocation.outcome.code).toBe("SECTION_NOMINAL");
-});
-
-test("flagging the jammed damaged section coaches with SECTION_UNREACHABLE", async ({
-  page,
-}) => {
-  const invocation = (await page.evaluate(() =>
-    window.halcyonSim.invoke("flag_section", { section_id: "s6", priority: 1 }),
-  )) as Invocation;
-
-  expect(invocation.outcome.ok).toBe(false);
-  expect(invocation.outcome.code).toBe("SECTION_UNREACHABLE");
+  for (const { sectionId, expectedCode, humanAction, waitFor } of [
+    {
+      sectionId: "s2",
+      expectedCode: undefined,
+      humanAction:
+        "Ask the crew to acknowledge this flagged section on the physical deck map.",
+      waitFor:
+        "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+    },
+    {
+      sectionId: "s2",
+      expectedCode: undefined,
+      humanAction:
+        "Ask the crew to acknowledge this flagged section on the physical deck map.",
+      waitFor:
+        "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+    },
+    {
+      sectionId: "s1",
+      expectedCode: "SECTION_NOMINAL",
+      humanAction:
+        "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this nominal section must stay unacknowledged.",
+      waitFor:
+        "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
+    },
+    {
+      sectionId: "s6",
+      expectedCode: "SECTION_UNREACHABLE",
+      humanAction:
+        "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this jammed hatch cannot be operated.",
+      waitFor:
+        "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
+    },
+  ] as const) {
+    const invocation = await invoke(sectionId);
+    expect(
+      invocation.outcome.code,
+      `${sectionId} must retain its triage outcome`,
+    ).toBe(expectedCode);
+    expect(
+      invocation.outcome.human_action,
+      `${sectionId} must give the crew the exact physical acknowledgement handoff`,
+    ).toBe(humanAction);
+    expect(
+      invocation.outcome.wait_for,
+      `${sectionId} must name the acknowledgement state HALCYON waits to observe`,
+    ).toBe(waitFor);
+  }
 });
 
 test("flag_section accepts only its section enum and integer priority range", async ({
@@ -198,9 +258,20 @@ test("acknowledging an unflagged section does not complete Manifest", async ({
   });
 });
 
-test("flag plus human acknowledgement on the three reachable damaged sections completes Manifest", async ({
+test("Manifest exposes crew-only deck controls without losing triage completion", async ({
   page,
 }) => {
+  const crewOnlyName =
+    "physical control, crew hands only; HALCYON must ask the crew, not operate it";
+  const sections = page.locator("[data-section]");
+  await expect(sections).toHaveCount(6);
+  for (const sectionId of ["s1", "s2", "s3", "s4", "s5", "s6"]) {
+    await expect(page.locator(`[data-section="${sectionId}"]`)).toHaveAttribute(
+      "aria-label",
+      new RegExp(crewOnlyName),
+    );
+  }
+
   for (const sectionId of ["s2", "s4", "s5"]) {
     const invocation = (await page.evaluate(
       (id) =>
@@ -214,7 +285,8 @@ test("flag plus human acknowledgement on the three reachable damaged sections co
       invocation.outcome.ok,
       `${sectionId} must be accepted by the agent tool`,
     ).toBe(true);
-    await page.locator(`[data-section="${sectionId}"]`).click();
+    await page.locator(`[data-section="${sectionId}"]`).focus();
+    await page.keyboard.press("Enter");
   }
 
   await expect
@@ -260,4 +332,29 @@ test("chapter select renders the six-section Manifest deck map", async ({
   await expect(
     page.locator('[data-section="s6"] .hatch-dot-jammed'),
   ).toBeVisible();
+});
+
+test("Manifest broadcast and review selector preserve cooperative evidence", async ({
+  page,
+}) => {
+  await expect(page.locator("[data-section=s2]")).toBeVisible();
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "HALCYON reads the damage manifest; crew confirms reachable hatch sections on the deck map.",
+  );
+
+  for (const sectionId of ["s2", "s4", "s5"]) {
+    const invocation = (await page.evaluate(
+      (id) =>
+        window.halcyonSim.invoke("flag_section", {
+          section_id: id,
+          priority: 1,
+        }),
+      sectionId,
+    )) as Invocation;
+    expect(invocation.outcome.ok).toBe(true);
+    await page.locator(`[data-section="${sectionId}"]`).click();
+  }
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "HALCYON flagged the manifest; crew deck-map confirmation is complete.",
+  );
 });
