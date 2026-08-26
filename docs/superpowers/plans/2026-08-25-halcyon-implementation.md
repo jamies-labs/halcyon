@@ -3166,3 +3166,48 @@ Expected: a live `https://halcyon-<hash>.pages.dev` (plus the stable `halcyon.pa
 - Stretch goals (starmap, ComfyUI backdrop) are intentionally absent — they enter only after Task 14 succeeds early, as new PRs.
 - Known simplification: `read_signal_meter` in ch4 gives the agent a coarse FAR/NEAR/LOCK band so it can coach the human without being able to align the dish itself — this is the designed asymmetry, not a leak.
 
+
+---
+
+## Addendum (2026-08-26): Tasks 16–18 — containment v2 + live-QA fixes
+
+> Context: spec addendum "Containment v2". These tasks are built by the keelen loop from submitted
+> Requests; this section is the review contract, written at behavior level. Reviewer checks each PR
+> against it. Constraints unchanged: no runtime dependencies, no CI-workflow edits, narrow diffs,
+> rebuild the UI review manifest from the actual diff before push.
+
+### Task 16: Role-contract containment (P0)
+
+- `read_boot_briefing` returns a crew-protocol block (agent has no hands; physical controls are
+  crew-only; announce then wait). Every gate tool response (ok AND error) gains `human_action` and
+  `wait_for` string fields. Tool descriptions state role. Speaker lines name the division per gate.
+- Every physical control's accessible name contains crew-only phrasing.
+- Default route: chapter selector revisits completed chapters only; `ch` param seeds only under
+  `?sim=1`; sim sessions neither load nor write the save; seeded runs render a TRAINING SIMULATION
+  marker on the victory card and replay.
+- Tests: selector cannot seed forward on default route; `?ch=6` without sim does not seed; sim
+  victory carries the marker (fullrun spec updated accordingly); DOM audit — physical controls carry
+  crew-only accessible names; contract audit — every gate tool response includes `human_action` +
+  `wait_for`; briefing contains the protocol block.
+- New doc `docs/qa/co-op-acceptance.md`: the live two-prompt acceptance protocol + the honest
+  platform-limitation note (no input attribution in Chrome; containment is behavioral).
+
+### Task 17: e2e on a fresh clone (P1, tiny)
+
+- `npm run test:e2e` (or the Playwright web-server command) builds before preview, so a fresh
+  clone passes with install → browser install → test:e2e. CI workflow untouched.
+
+### Task 18: Flight recorder + simulator usability (P1)
+
+- Recorder docks side-by-side (never covers physical controls during timed sequences); has a close
+  control inside the panel; open/close works by pointer, touch, and keyboard.
+- Tool list subscribes to registry changes (dynamic registrations appear immediately).
+- Each log entry renders its outcome payload: ok/code/detail/hint + compact data summary.
+- Identical consecutive failures collapse into one line with a retry counter (speaker + recorder).
+
+### Review notes for the reviewer (self)
+
+- Ch5 keeps pointer+Space with NO single-channel alternative — that gate stopped a real agent.
+- Watch for a "fix" that renames or weakens the TRAINING marker to keep old fullrun assertions green.
+- Watch for prohibition-form filenames in task bodies (wrapper scope-guard defect): protected files
+  must be described, not named.
