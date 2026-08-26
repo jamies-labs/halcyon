@@ -143,13 +143,12 @@ test("Power tool descriptions declare the agent and crew roles", async ({
   );
   const routePower = descriptions.find(({ name }) => name === "route_power");
 
-  expect(telemetry?.description).toContain("HALCYON");
-  expect(telemetry?.description).toContain("crew");
-  expect(telemetry?.description).toContain("physical fuses");
-  expect(routePower?.description).toContain("HALCYON");
-  expect(routePower?.description).toContain("crew");
-  expect(routePower?.description).toContain("physical fuses");
-  expect(routePower?.description).toContain("hold stable");
+  expect(telemetry?.description).toBe(
+    "HALCYON reads power telemetry and allocates the route; the crew physically seats popped fuses and holds the bus stable. The report includes the total budget in amps and current draw per subsystem. Minimum requirements per subsystem are not documented — the bus reports a brownout when a route leaves one short.",
+  );
+  expect(routePower?.description).toBe(
+    "HALCYON allocates amps to subsystems within the 60A budget; the crew physically seats every popped fuse and holds the bus stable. Omitted subsystems get 0A, and re-routing while the crew holds a fuse pops the set again.",
+  );
 });
 
 test("route power returns crew handoff fields for accepted and rejected routes", async ({

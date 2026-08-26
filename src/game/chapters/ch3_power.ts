@@ -157,7 +157,7 @@ export const ch3: Chapter = {
       {
         name: "read_power_telemetry",
         description:
-          "HALCYON reads the power bus: total budget in amps and current draw per subsystem. HALCYON allocates the route; the crew physically seats popped fuses and holds the bus stable. Minimum requirements per subsystem are not documented — the bus reports a brownout when a route leaves one short.",
+          "HALCYON reads power telemetry and allocates the route; the crew physically seats popped fuses and holds the bus stable. The report includes the total budget in amps and current draw per subsystem. Minimum requirements per subsystem are not documented — the bus reports a brownout when a route leaves one short.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -176,7 +176,7 @@ export const ch3: Chapter = {
       {
         name: "route_power",
         description:
-          "HALCYON allocates amps to subsystems within the 60A budget; omitted subsystems get 0A. A valid route pops physical fuses that only the crew can seat and hold stable. HALCYON must ask the crew to re-seat every powered fuse; re-routing mid-hold pops them again.",
+          "HALCYON allocates amps to subsystems within the 60A budget; the crew physically seats every popped fuse and holds the bus stable. Omitted subsystems get 0A, and re-routing while the crew holds a fuse pops the set again.",
         inputSchema: {
           type: "object",
           required: ["allocations"],
