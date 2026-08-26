@@ -50,4 +50,40 @@ describe("design contract activation", () => {
     expect(activation?.viewports).toEqual(expect.arrayContaining([375, 1280]));
     expect(activation?.covers?.changedPaths).toContain("src/styles.css");
   });
+
+  it("waits for the visible gate before running each review interaction", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        variant?: string;
+        ready_selector: string;
+        setup?: { settled_selector?: string };
+      }>;
+    };
+    const chapter = parsed.scenarios.find(
+      (scenario) => scenario.variant === "chapter-one-unbuilt",
+    );
+    const recorder = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-open",
+    );
+
+    expect(
+      chapter,
+      "chapter post-start scenario must be present",
+    ).toBeDefined();
+    expect(chapter?.ready_selector).toBe("[data-testid=gate]");
+    expect(chapter?.setup?.settled_selector).toBe(
+      "[data-testid=chapter-missing]",
+    );
+    expect(
+      recorder,
+      "recorder interaction scenario must be present",
+    ).toBeDefined();
+    expect(recorder?.ready_selector).toBe("[data-testid=gate]");
+    expect(recorder?.setup?.settled_selector).toBe(
+      "[data-testid=recorder-panel]",
+    );
+  });
 });

@@ -27,9 +27,9 @@ test("gate shows without sim param and Start reveals Chapter 1", async ({
   await page.getByTestId("gate-start").click();
 
   await expect(page.getByTestId("gate")).toBeHidden();
-  await expect(page.getByTestId("chapter-missing")).toHaveText(
-    "Chapter 1 is under construction.",
-  );
+  await expect(
+    page.getByTestId("chapter-missing").getByRole("heading"),
+  ).toHaveText("Chapter 1 is under construction.");
 });
 
 test("sim mode auto-starts and exposes chapter one via halcyonSim", async ({
