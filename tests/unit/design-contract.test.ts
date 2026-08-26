@@ -51,7 +51,7 @@ describe("design contract activation", () => {
     expect(activation?.covers?.changedPaths).toContain("src/styles.css");
   });
 
-  it("waits for the visible gate before running each review interaction", () => {
+  it("declares each post-interaction evidence selector required by the review contract", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
 
@@ -73,7 +73,7 @@ describe("design contract activation", () => {
       chapter,
       "chapter post-start scenario must be present",
     ).toBeDefined();
-    expect(chapter?.ready_selector).toBe("[data-testid=gate]");
+    expect(chapter?.ready_selector).toBe("[data-testid=chapter-missing]");
     expect(chapter?.setup?.settled_selector).toBe(
       "[data-testid=chapter-missing]",
     );
@@ -81,7 +81,7 @@ describe("design contract activation", () => {
       recorder,
       "recorder interaction scenario must be present",
     ).toBeDefined();
-    expect(recorder?.ready_selector).toBe("[data-testid=gate]");
+    expect(recorder?.ready_selector).toBe("[data-testid=recorder-panel]");
     expect(recorder?.setup?.settled_selector).toBe(
       "[data-testid=recorder-panel]",
     );
