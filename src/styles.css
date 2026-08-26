@@ -449,6 +449,61 @@ dd {
   font-family: var(--font-utility);
 }
 
+.vent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-2);
+}
+
+.vent-handle {
+  min-width: var(--size-hit-target);
+  min-height: var(--size-hit-target);
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  user-select: none;
+  touch-action: none;
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.vent-handle:hover {
+  background: var(--color-surface-raised);
+}
+
+.vent-handle:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-width);
+}
+
+.vent-key {
+  cursor: default;
+}
+
+.vent-armed {
+  border-color: var(--color-focus);
+  color: var(--color-focus);
+}
+
+.hold-ring {
+  width: calc(var(--size-hit-target) + var(--space-2));
+  height: calc(var(--size-hit-target) + var(--space-2));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--color-accent-strong) calc(var(--hold-progress, 0) * 1turn),
+    var(--color-surface) 0
+  );
+}
+
 .hatch-dot-open {
   fill: var(--color-accent-strong);
   animation: hatchblink 1.2s ease-in-out infinite;
