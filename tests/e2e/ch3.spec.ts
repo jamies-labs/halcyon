@@ -419,6 +419,10 @@ test("Power broadcast and review scenario preserve cooperative evidence", async 
     response.ok(),
     "the review manifest must be served to its runner",
   ).toBe(true);
+  expect(
+    response.headers()["content-type"],
+    "the review manifest must be delivered as JSON rather than the app fallback",
+  ).toContain("application/json");
   const manifest = (await response.json()) as {
     scenarios: Array<{
       route: string;
