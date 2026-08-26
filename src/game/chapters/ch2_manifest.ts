@@ -154,9 +154,9 @@ export const ch2: Chapter = {
               detail: `Section ${id} reports all readings nominal.`,
               hint: "Cross-check read_damage_manifest — only damaged sections need triage.",
               human_action:
-                "Ask the crew to leave this nominal deck-map section unacknowledged and confirm a flagged damaged hatch instead.",
+                "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this nominal section must stay unacknowledged.",
               wait_for:
-                "Wait for the crew acknowledgement on a flagged reachable deck-map section; this nominal section will not acknowledge.",
+                "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
             };
           }
           if (!REACHABLE.has(id)) {
@@ -166,9 +166,9 @@ export const ch2: Chapter = {
               detail: `The hatch to ${id} does not answer.`,
               hint: "Crew reports some hatches are jammed. Ask which sections they can physically reach, then flag those.",
               human_action:
-                "Ask the crew not to operate this jammed deck-map hatch and to acknowledge a flagged reachable section instead.",
+                "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this jammed hatch cannot be operated.",
               wait_for:
-                "Wait for the crew acknowledgement on a flagged reachable deck-map section; this jammed hatch cannot acknowledge.",
+                "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
             };
           }
           if (flagged.has(id)) {

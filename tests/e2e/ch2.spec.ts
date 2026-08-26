@@ -141,11 +141,39 @@ test("flag section returns crew handoff fields for accepted and rejected triage"
       sectionId,
     )) as Invocation;
 
-  for (const [sectionId, expectedCode] of [
-    ["s2", undefined],
-    ["s2", undefined],
-    ["s1", "SECTION_NOMINAL"],
-    ["s6", "SECTION_UNREACHABLE"],
+  for (const { sectionId, expectedCode, humanAction, waitFor } of [
+    {
+      sectionId: "s2",
+      expectedCode: undefined,
+      humanAction:
+        "Ask the crew to acknowledge this flagged section on the physical deck map.",
+      waitFor:
+        "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+    },
+    {
+      sectionId: "s2",
+      expectedCode: undefined,
+      humanAction:
+        "Ask the crew to acknowledge this flagged section on the physical deck map.",
+      waitFor:
+        "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+    },
+    {
+      sectionId: "s1",
+      expectedCode: "SECTION_NOMINAL",
+      humanAction:
+        "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this nominal section must stay unacknowledged.",
+      waitFor:
+        "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
+    },
+    {
+      sectionId: "s6",
+      expectedCode: "SECTION_UNREACHABLE",
+      humanAction:
+        "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this jammed hatch cannot be operated.",
+      waitFor:
+        "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
+    },
   ] as const) {
     const invocation = await invoke(sectionId);
     expect(
@@ -154,12 +182,12 @@ test("flag section returns crew handoff fields for accepted and rejected triage"
     ).toBe(expectedCode);
     expect(
       invocation.outcome.human_action,
-      `${sectionId} must tell the crew to acknowledge the physical deck-map section`,
-    ).toMatch(/crew.*deck map/i);
+      `${sectionId} must give the crew the exact physical acknowledgement handoff`,
+    ).toBe(humanAction);
     expect(
       invocation.outcome.wait_for,
       `${sectionId} must name the acknowledgement state HALCYON waits to observe`,
-    ).toMatch(/acknowledg/i);
+    ).toBe(waitFor);
   }
 });
 
