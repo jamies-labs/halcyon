@@ -1,47 +1,160 @@
 import "./styles.css";
+import { AudioEngine } from "./audio/engine";
+import { CHAPTERS } from "./game/chapters";
+import type { Chapter, ChapterCtx } from "./game/chapters/types";
+import { globalTools } from "./game/globalTools";
+import { bindAutosave, loadSave } from "./game/save";
+import { initialState, Store } from "./game/store";
+import { T } from "./game/timings";
+import { seedForChapter, mountChapterSelect } from "./ui/chapterSelect";
+import { el } from "./ui/dom";
+import { mountGate } from "./ui/gate";
+import { mountRecorderPanel, Recorder } from "./ui/recorder";
+import { Speaker } from "./ui/speaker";
+import { ToolRegistry } from "./webmcp/registry";
+import { detectModelContext } from "./webmcp/shim";
+import type { ChapterId } from "./webmcp/types";
 
+const params = new URLSearchParams(location.search);
 const app = document.querySelector<HTMLDivElement>("#app")!;
-app.innerHTML = `
-  <main class="shell" data-testid="mission-console">
-    <header class="masthead">
-      <p class="eyebrow">ISV HALCYON / survey vessel</p>
-      <h1>ISV HALCYON</h1>
-      <p class="lede">Emergency wake cycle is holding steady.</p>
-    </header>
+const store = new Store(initialState());
+const saved = loadSave();
+if (saved && !params.has("ch")) {
+  seedForChapter(store, saved.chapter);
+  store.update((state) => {
+    state.chapterDone = saved.chapterDone;
+  });
+}
+bindAutosave(store);
 
-    <section class="console-panel" aria-labelledby="ship-status-heading">
-      <div class="signal-line" aria-hidden="true"></div>
-      <div class="panel-heading">
-        <p class="eyebrow">Crew status</p>
-        <h2 id="ship-status-heading">One crew member awake</h2>
-      </div>
-      <dl class="status-list">
-        <div><dt>Hull</dt><dd>Stable</dd></div>
-        <div><dt>Agent link</dt><dd>Crew link pending</dd></div>
-        <div><dt>Next step</dt><dd>Share the mission brief</dd></div>
-      </dl>
-      <button class="briefing-button" type="button" data-testid="open-crew-briefing" aria-expanded="false" aria-controls="crew-briefing">
-        Open crew briefing
-      </button>
-    </section>
+const recorder = new Recorder();
+const host = detectModelContext();
+const registry = new ToolRegistry(host, (record) => recorder.record(record));
+const audio = new AudioEngine();
+const titles: Record<ChapterId, string> = {
+  1: "Contact",
+  2: "Manifest",
+  3: "Power",
+  4: "Antenna",
+  5: "Two-person rule",
+  6: "Burn",
+};
 
-    <section class="crew-briefing" id="crew-briefing" data-testid="crew-briefing" aria-labelledby="crew-briefing-heading" hidden tabindex="-1">
-      <p class="eyebrow">Crew briefing</p>
-      <h2 id="crew-briefing-heading">The ship needs two crew.</h2>
-      <p>HALCYON listens through your agent. Open its tools, compare what each of you can see, and bring the ship home together.</p>
-    </section>
-  </main>
-`;
-
-const briefingButton = document.querySelector<HTMLButtonElement>(
-  '[data-testid="open-crew-briefing"]',
-)!;
-const briefing = document.querySelector<HTMLElement>(
-  '[data-testid="crew-briefing"]',
-)!;
-
-briefingButton.addEventListener("click", () => {
-  briefing.hidden = false;
-  briefingButton.setAttribute("aria-expanded", "true");
-  briefing.focus();
+const header = el(
+  "header",
+  { class: "hud" },
+  el("p", { class: "hud-title" }, "ISV HALCYON"),
+  el("p", { class: "hud-chapter", "data-testid": "hud-chapter" }),
+);
+const stage = el("main", { class: "stage", "data-testid": "stage" });
+const speakerRoot = el("section", {
+  class: "speaker",
+  "data-testid": "speaker-panel",
+  "aria-label": "Ship speaker",
 });
+app.replaceChildren(header, stage, speakerRoot);
+const speaker = new Speaker(speakerRoot);
+mountRecorderPanel(recorder, registry, app);
+mountChapterSelect(header, store, titles);
+
+let mounted: Chapter | null = null;
+function contextFor(chapter: Chapter): ChapterCtx {
+  return {
+    store,
+    registry,
+    audio,
+    speaker,
+    recorder,
+    stage,
+    complete() {
+      store.update((state) => {
+        state.chapterDone[chapter.id] = true;
+      });
+      recorder.addHuman(`Chapter ${chapter.id} (${chapter.title}) complete.`);
+      if (chapter.id < 6) {
+        setTimeout(() => {
+          store.update((state) => {
+            state.chapter = (chapter.id + 1) as ChapterId;
+          });
+        }, T.advanceDelayMs);
+      }
+    },
+  };
+}
+
+function mountChapter(id: ChapterId): void {
+  mounted?.unmount();
+  stage.replaceChildren();
+  header.querySelector<HTMLElement>(".hud-chapter")!.textContent =
+    `Chapter ${id} / ${titles[id]}`;
+  const chapter = CHAPTERS[id];
+  if (!chapter) {
+    stage.append(
+      el(
+        "section",
+        {
+          class: "chapter-missing",
+          "data-testid": "chapter-missing",
+          "aria-live": "polite",
+        },
+        el("p", { class: "eyebrow" }, "Chapter router"),
+        el("h1", {}, `Chapter ${id} is under construction.`),
+        el("p", {}, "The crew surface is ready for this chapter's real scene."),
+      ),
+    );
+    mounted = null;
+    registry.setTools(store.get().booted ? globalTools(store, speaker) : []);
+    return;
+  }
+  mounted = chapter;
+  const context = contextFor(chapter);
+  const baseTools = store.get().booted ? globalTools(store, speaker) : [];
+  registry.setTools([...baseTools, ...chapter.tools(context)]);
+  chapter.mount(context);
+}
+
+let lastChapter: ChapterId | null = null;
+store.subscribe((state) => {
+  if (state.chapter !== lastChapter) {
+    lastChapter = state.chapter;
+    mountChapter(state.chapter);
+  }
+});
+
+const requestedChapter = Number(params.get("ch")) as ChapterId;
+if (requestedChapter >= 1 && requestedChapter <= 6) {
+  seedForChapter(store, requestedChapter);
+} else {
+  store.update(() => {});
+}
+
+if (params.has("sim")) {
+  audio.ensureRunning();
+} else {
+  mountGate(app, host !== null, () => {
+    audio.ensureRunning();
+    speaker.say(
+      "Emergency power detected. Hello, crew. Let's go home.",
+      "calm",
+    );
+  });
+}
+
+window.halcyonSim = {
+  invoke: (name: string, args?: unknown) =>
+    registry.invoke(name, args ?? {}, "sim"),
+  listTools: () => registry.listTools().map((tool) => tool.name),
+  getState: () => store.get(),
+  goto: (chapter: ChapterId) => seedForChapter(store, chapter),
+};
+
+declare global {
+  interface Window {
+    halcyonSim: {
+      invoke: (name: string, args?: unknown) => Promise<unknown>;
+      listTools: () => string[];
+      getState: () => ReturnType<Store["get"]>;
+      goto: (chapter: ChapterId) => void;
+    };
+  }
+}
