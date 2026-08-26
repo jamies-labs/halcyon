@@ -128,6 +128,35 @@
         ],
         "triggerOnlyPaths": []
       }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "chapter-four-antenna",
+      "viewports": [375, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=dish-readout]",
+      "setup": {
+        "interactions": [
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=goto-ch4]"
+          }
+        ],
+        "settled_selector": "[data-testid=dish-readout]"
+      },
+      "covers": {
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "changedPaths": [
+          "src/game/chapters/ch4_antenna.ts",
+          "src/game/chapters/index.ts",
+          "src/styles.css"
+        ]
+      }
     }
   ]
 }
