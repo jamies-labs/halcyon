@@ -47,7 +47,7 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
     {
       name: "send_distress",
       description:
-        "Transmit a distress call on the locked antenna. A rescue buoy may answer after a short delay; then decode the reply.",
+        "HALCYON operates the distress transmitter only after the crew's physical antenna alignment locks comms; the crew alone aligns the dish.",
       inputSchema: {
         type: "object",
         required: ["message"],
@@ -79,7 +79,7 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
     {
       name: "tune_decoder",
       description:
-        "Set the decoder frequency offset in kHz (-50 to 50). Returns checksum_quality (0 to 1); the reply decodes at 0.95 or better.",
+        "HALCYON operates the decoder after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. Set the decoder frequency offset in kHz (-50 to 50). Returns checksum_quality (0 to 1); the reply decodes at 0.95 or better.",
       inputSchema: {
         type: "object",
         required: ["offset_khz"],
@@ -102,7 +102,7 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
     {
       name: "decode_reply",
       description:
-        "Decode the last received transmission at the current decoder offset. Below 0.95 checksum_quality the text is garbled.",
+        "HALCYON operates reply decoding after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. Below 0.95 checksum_quality the text is garbled.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -167,7 +167,7 @@ function lockAntenna(ctx: ChapterCtx): void {
   ctx.registry.addTools(dynamicCommsTools(ctx));
   ctx.recorder.addHuman("Antenna locked — comms tools registered mid-page.");
   ctx.speaker.say(
-    "Lock. New comms tools are online for me: send_distress, tune_decoder, decode_reply.",
+    "My coarse meter confirms LOCK; your fine physical alignment brought us here, crew. New comms tools are online for me: send_distress, tune_decoder, decode_reply.",
     "urgent",
   );
 }
@@ -192,7 +192,7 @@ export const ch4: Chapter = {
       {
         name: "read_signal_meter",
         description:
-          "Read the antenna signal meter. It reports a coarse band only; the crew must use the bridge static to make the fine alignment.",
+          "HALCYON reads the coarse signal meter; it must wait for the crew's physical antenna alignment to reach LOCK before comms tools can operate.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -203,6 +203,8 @@ export const ch4: Chapter = {
           const error = alignmentError();
           return {
             ok: true,
+            human_action: "Crew physically aligns the antenna dish by hand.",
+            wait_for: "Wait for band LOCK and comms_online true.",
             data: {
               band:
                 error < LOCK_TOLERANCE ? "LOCK" : error < 25 ? "NEAR" : "FAR",
@@ -226,7 +228,8 @@ export const ch4: Chapter = {
       "data-testid": "dish-knob",
       tabindex: "0",
       role: "button",
-      "aria-label": "Move antenna dish with pointer or arrow keys",
+      "aria-label":
+        "physical control, crew hands only; HALCYON must ask the crew, not operate it",
     });
     const pad = el(
       "div",
@@ -339,7 +342,7 @@ export const ch4: Chapter = {
       readout,
     );
     ctx.speaker.say(
-      "My signal meter only says FAR, NEAR, or LOCK. Your ears are the fine instrument now, crew. Sweep slowly.",
+      "HALCYON reads the coarse meter and operates the comms tools; crew performs the fine physical antenna alignment. My signal meter only says FAR, NEAR, or LOCK. Sweep slowly.",
       "calm",
     );
   },

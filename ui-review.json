@@ -5,10 +5,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "gate-visible",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=gate]",
       "covers": {
@@ -19,20 +16,14 @@
           "src/game/store.ts",
           "src/webmcp/types.ts"
         ],
-        "triggerOnlyPaths": [
-          "DESIGN.md",
-          "vite.config.ts"
-        ]
+        "triggerOnlyPaths": ["DESIGN.md", "vite.config.ts"]
       }
     },
     {
       "route": "/",
       "state": "resolved",
       "variant": "chapter-one-contact",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=breaker-handle]",
       "setup": {
@@ -51,19 +42,14 @@
           "src/game/chapters/index.ts",
           "src/styles.css"
         ],
-        "triggerOnlyPaths": [
-          "src/game/globalTools.ts"
-        ]
+        "triggerOnlyPaths": ["src/game/globalTools.ts"]
       }
     },
     {
       "route": "/",
       "state": "resolved",
       "variant": "recorder-open",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-panel]",
       "setup": {
@@ -93,10 +79,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-two-manifest",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-section=s2]",
       "setup": {
@@ -114,9 +97,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch2_manifest.ts"
-        ],
+        "changedPaths": ["src/game/chapters/ch2_manifest.ts"],
         "triggerOnlyPaths": []
       }
     },
@@ -124,10 +105,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-three-power",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=fuse-tray]",
       "setup": {
@@ -144,15 +122,8 @@
         "settled_selector": "[data-testid=fuse-tray]"
       },
       "covers": {
-        "requirementKeys": [
-          "AC0",
-          "AC1",
-          "AC2",
-          "AC3"
-        ],
-        "changedPaths": [
-          "src/game/chapters/ch3_power.ts"
-        ],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "changedPaths": ["src/game/chapters/ch3_power.ts"],
         "triggerOnlyPaths": []
       }
     },
@@ -160,10 +131,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-four-antenna",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=dish-readout]",
       "setup": {
@@ -180,22 +148,16 @@
         "settled_selector": "[data-testid=dish-readout]"
       },
       "covers": {
-        "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch4_antenna.ts",
-          "src/game/chapters/index.ts",
-          "src/styles.css"
-        ]
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "changedPaths": ["src/game/chapters/ch4_antenna.ts"],
+        "triggerOnlyPaths": []
       }
     },
     {
       "route": "/",
       "state": "resolved",
       "variant": "chapter-five-two-man",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=vent-left]",
       "setup": {
@@ -225,10 +187,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-six-burn",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=inject-tap]",
       "setup": {
