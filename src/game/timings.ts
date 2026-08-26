@@ -9,6 +9,7 @@ export const T = {
   replyDelayMs: FAST ? 500 : 2_000,
   armWindowMs: FAST ? 4_000 : 10_000,
   holdMs: FAST ? 600 : 2_000,
+  throttleHoldMs: FAST ? 1_000 : 3_000,
   burnCountdownMs: FAST ? 20_000 : 90_000,
   advanceDelayMs: FAST ? 200 : 1_500,
 } as const;
