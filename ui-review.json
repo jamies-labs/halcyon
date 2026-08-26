@@ -20,7 +20,7 @@
       "variant": "chapter-one-unbuilt",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=gate]",
+      "ready_selector": "[data-testid=chapter-missing]",
       "setup": {
         "interactions": [
           { "action": "click", "selector": "[data-testid=gate-start]" }
@@ -44,7 +44,7 @@
       "variant": "recorder-open",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=gate]",
+      "ready_selector": "[data-testid=recorder-panel]",
       "setup": {
         "interactions": [
           { "action": "click", "selector": "[data-testid=gate-start]" },
