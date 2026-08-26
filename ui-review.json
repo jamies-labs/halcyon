@@ -4,55 +4,61 @@
     {
       "route": "/",
       "state": "resolved",
-      "variant": "host-ready",
-      "viewports": [
-        1280
-      ],
+      "variant": "gate-visible",
+      "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=mission-console]",
+      "ready_selector": "[data-testid=gate]",
       "covers": {
-        "requirementKeys": [
-          "AC0",
-          "AC1",
-          "AC2",
-          "AC3",
-          "AC4"
+        "requirementKeys": ["AC1", "AC2", "AC4"],
+        "changedPaths": ["src/main.ts", "src/styles.css"],
+        "triggerOnlyPaths": ["DESIGN.md"]
+      }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "chapter-one-unbuilt",
+      "viewports": [375, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=gate]",
+      "setup": {
+        "interactions": [
+          { "action": "click", "selector": "[data-testid=gate-start]" }
         ],
+        "settled_selector": "[data-testid=chapter-missing]"
+      },
+      "covers": {
+        "requirementKeys": ["AC0"],
         "changedPaths": [
-          "src/webmcp/registry.ts",
-          "src/webmcp/shim.ts",
-          "src/game/save.ts",
-          "src/game/store.ts",
-          "src/game/timings.ts"
+          "src/ui/dom.ts",
+          "src/ui/gate.ts",
+          "src/ui/chapterSelect.ts",
+          "src/game/chapters/types.ts",
+          "src/game/chapters/index.ts"
         ]
       }
     },
     {
       "route": "/",
       "state": "resolved",
-      "variant": "crew-briefing",
-      "viewports": [
-        375,
-        1280
-      ],
+      "variant": "recorder-open",
+      "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=mission-console]",
+      "ready_selector": "[data-testid=gate]",
       "setup": {
         "interactions": [
-          {
-            "action": "click",
-            "selector": "[data-testid=open-crew-briefing]"
-          }
-        ]
+          { "action": "click", "selector": "[data-testid=gate-start]" },
+          { "action": "click", "selector": "[data-testid=recorder-toggle]" }
+        ],
+        "settled_selector": "[data-testid=recorder-panel]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC3"],
         "changedPaths": [
-          "src/main.ts",
-          "src/styles.css"
-        ],
-        "triggerOnlyPaths": [
-          "DESIGN.md"
+          "src/ui/speaker.ts",
+          "src/ui/recorder.ts",
+          "src/game/globalTools.ts",
+          "src/audio/engine.ts"
         ]
       }
     }
