@@ -231,4 +231,64 @@ describe("Chapter 5 Two-Man Rule", () => {
     ).toMatchObject({ armed: true });
     chapter.unmount();
   });
+
+  it("silences an already-queued expiry callback after Chapter Five unmounts", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    let nextTimerId = 0;
+    const queuedExpiry = new Map<number, () => void>();
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {
+        createElement: () => new FakeElement(),
+        createTextNode: () => new FakeElement(),
+      },
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        setInterval: globalThis.setInterval.bind(globalThis),
+        clearInterval: globalThis.clearInterval.bind(globalThis),
+        setTimeout: (callback: () => void) => {
+          const id = ++nextTimerId;
+          queuedExpiry.set(id, callback);
+          return id;
+        },
+        clearTimeout: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    });
+
+    const firstContext = chapterContext(
+      new FakeElement() as unknown as HTMLElement,
+    );
+    const chapter = CHAPTERS[5]!;
+    chapter.mount(firstContext);
+    const arm = chapter
+      .tools(firstContext)
+      .find((tool) => tool.name === "arm_purge")!;
+
+    expect((await arm.execute({})).ok).toBe(true);
+    const firstExpiry = queuedExpiry.get(1);
+    expect(
+      firstExpiry,
+      "arming must schedule an expiry callback",
+    ).toBeDefined();
+
+    chapter.unmount();
+    chapter.mount(chapterContext(new FakeElement() as unknown as HTMLElement));
+    firstExpiry!();
+
+    expect(
+      firstContext.speaker.say,
+      "an expiry queued before unmount must not broadcast into an abandoned chapter",
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      firstContext.recorder.addHuman,
+      "an expiry queued before unmount must not append a stale recorder entry",
+    ).toHaveBeenCalledTimes(1);
+    chapter.unmount();
+  });
 });

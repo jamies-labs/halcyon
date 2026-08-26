@@ -35,6 +35,10 @@ function resetChapterState(): void {
   cleanup = [];
   if (watch !== null) window.clearInterval(watch);
   if (disarmTimer !== null) window.clearTimeout(disarmTimer);
+  // clearTimeout cannot retract an expiry callback that has already reached
+  // the browser event queue. Invalidate it before a later chapter mount can
+  // inherit its stale speaker or recorder side effects.
+  armGeneration += 1;
   startedAt = 0;
   armedUntil = 0;
   leftHeld = false;

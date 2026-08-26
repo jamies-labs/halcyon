@@ -136,9 +136,12 @@ test("one handle alone never purges; both handles inside the armed window do", a
 }) => {
   expect((await armWhenSafe(page)).outcome.ok).toBe(true);
 
-  const left = await page.getByTestId("vent-left").boundingBox();
-  expect(left, "left vent must have a pointer target").not.toBeNull();
-  await page.mouse.move(left!.x + left!.width / 2, left!.y + left!.height / 2);
+  const firstLeft = await page.getByTestId("vent-left").boundingBox();
+  expect(firstLeft, "left vent must have a pointer target").not.toBeNull();
+  await page.mouse.move(
+    firstLeft!.x + firstLeft!.width / 2,
+    firstLeft!.y + firstLeft!.height / 2,
+  );
   await page.mouse.down();
   try {
     await page.waitForTimeout(900);
@@ -162,23 +165,38 @@ test("one handle alone never purges; both handles inside the armed window do", a
       ),
       "Space alone must not purge the drive",
     ).toBe(false);
+  } finally {
+    await page.keyboard.up("Space");
+    await page.mouse.up();
+  }
 
-    // The two-handle proof needs its own full arm window. The preceding
-    // one-handle checks deliberately consume real time and must not make the
-    // positive path depend on scheduler jitter near the four-second deadline.
-    expect((await armWhenSafe(page)).outcome.ok).toBe(true);
-    await page.mouse.down();
+  // Reset the browser state between the negative and positive paths. The
+  // negative proof deliberately holds inputs for longer than the success hold;
+  // carrying that elapsed real time into a re-arm makes the positive path
+  // dependent on browser scheduling instead of the Two-Man Rule itself.
+  await page.goto("/?fast=1&sim=1&ch=5");
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
+  const freshLeft = await page.getByTestId("vent-left").boundingBox();
+  expect(freshLeft, "fresh vent must have a pointer target").not.toBeNull();
+  await page.mouse.move(
+    freshLeft!.x + freshLeft!.width / 2,
+    freshLeft!.y + freshLeft!.height / 2,
+  );
+  await page.mouse.down();
+  await page.keyboard.down("Space");
+  try {
     await expect
       .poll(
         () =>
           page.evaluate(
             () => window.halcyonSim.getState().flags["drive.purged"],
           ),
-        { timeout: 2_000 },
+        { intervals: [50, 100, 200], timeout: 3_000 },
       )
       .toBe(true);
     expect(
       await page.evaluate(() => window.halcyonSim.getState().chapterDone[5]),
+      "simultaneous physical holds must complete Chapter Five",
     ).toBe(true);
   } finally {
     await page.keyboard.up("Space");
@@ -215,7 +233,10 @@ test("the armed window expires and read_gauge reports armed false", async ({
     next: "Crew must hold both handles simultaneously until the purge completes.",
   });
   await expect
-    .poll(async () => (await gauge(page)).armed, { timeout: 5_000 })
+    .poll(async () => (await gauge(page)).armed, {
+      intervals: [100, 250, 500],
+      timeout: 6_000,
+    })
     .toBe(false);
   expect(
     await page.evaluate(
