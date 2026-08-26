@@ -79,6 +79,7 @@ describe("timings", () => {
     expect(FAST).toBe(true);
     expect(T).toEqual({
       mainsWindowMs: 2_000,
+      fuseSeatMs: 150,
       powerStableMs: 800,
       lockHoldMs: 500,
       replyDelayMs: 500,
