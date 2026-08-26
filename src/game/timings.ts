@@ -3,6 +3,7 @@ export const FAST =
 
 export const T = {
   mainsWindowMs: FAST ? 2_000 : 5_000,
+  fuseSeatMs: FAST ? 150 : 600,
   powerStableMs: FAST ? 800 : 10_000,
   lockHoldMs: FAST ? 500 : 1_500,
   replyDelayMs: FAST ? 500 : 2_000,

@@ -52,7 +52,13 @@ test("seeded chapter jump registers global tools and delivers broadcasts", async
   expect(state.chapter).toBe(3);
   expect(state.booted).toBe(true);
   const tools = await page.evaluate(() => window.halcyonSim.listTools());
-  expect(tools).toEqual(["get_ship_state", "broadcast", "read_boot_briefing"]);
+  expect(tools).toEqual([
+    "get_ship_state",
+    "broadcast",
+    "read_boot_briefing",
+    "read_power_telemetry",
+    "route_power",
+  ]);
   const result = await page.evaluate(() =>
     window.halcyonSim.invoke("get_ship_state", {}),
   );

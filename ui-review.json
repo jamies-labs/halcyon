@@ -97,6 +97,37 @@
           "src/styles.css"
         ]
       }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "chapter-three-power",
+      "viewports": [375, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=fuse-tray]",
+      "setup": {
+        "interactions": [
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=goto-ch3]"
+          }
+        ],
+        "settled_selector": "[data-testid=fuse-tray]"
+      },
+      "covers": {
+        "requirementKeys": ["AC4"],
+        "changedPaths": [
+          "src/game/chapters/ch3_power.ts",
+          "src/game/chapters/index.ts",
+          "src/game/timings.ts",
+          "src/styles.css"
+        ],
+        "triggerOnlyPaths": []
+      }
     }
   ]
 }
