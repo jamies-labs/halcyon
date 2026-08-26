@@ -72,35 +72,6 @@
     {
       "route": "/",
       "state": "resolved",
-      "variant": "chapter-two-manifest-baseline",
-      "viewports": [375, 1280],
-      "theme": "light",
-      "ready_selector": "[data-section=s2]",
-      "setup": {
-        "interactions": [
-          {
-            "action": "click",
-            "selector": "[data-testid=gate-start]"
-          },
-          {
-            "action": "click",
-            "selector": "[data-testid=goto-ch2]"
-          }
-        ],
-        "settled_selector": "[data-section=s2]"
-      },
-      "covers": {
-        "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch2_manifest.ts",
-          "src/game/chapters/index.ts",
-          "src/styles.css"
-        ]
-      }
-    },
-    {
-      "route": "/",
-      "state": "resolved",
       "variant": "chapter-two-manifest",
       "viewports": [375, 1280],
       "theme": "light",
