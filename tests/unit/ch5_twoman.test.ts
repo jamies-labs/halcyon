@@ -155,4 +155,80 @@ describe("Chapter 5 Two-Man Rule", () => {
     ).toHaveBeenCalledOnce();
     chapter!.unmount();
   });
+
+  it("keeps a later arming window live if an earlier expiry callback is already queued", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    let nextTimerId = 0;
+    const queuedExpiry = new Map<number, () => void>();
+    const windowListeners = new Map<string, Listener[]>();
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {
+        createElement: () => new FakeElement(),
+        createTextNode: () => new FakeElement(),
+      },
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        setInterval: globalThis.setInterval.bind(globalThis),
+        clearInterval: globalThis.clearInterval.bind(globalThis),
+        setTimeout: (callback: () => void) => {
+          const id = ++nextTimerId;
+          queuedExpiry.set(id, callback);
+          return id;
+        },
+        // An expiry task that has already reached the event queue cannot be
+        // unscheduled. Keep it callable to model that browser boundary.
+        clearTimeout: vi.fn(),
+        addEventListener: (type: string, listener: Listener) => {
+          windowListeners.set(type, [
+            ...(windowListeners.get(type) ?? []),
+            listener,
+          ]);
+        },
+        removeEventListener: (type: string, listener: Listener) => {
+          windowListeners.set(
+            type,
+            (windowListeners.get(type) ?? []).filter(
+              (current) => current !== listener,
+            ),
+          );
+        },
+      },
+    });
+
+    const stage = new FakeElement();
+    const context = chapterContext(stage as unknown as HTMLElement);
+    const chapter = CHAPTERS[5]!;
+    chapter.mount(context);
+    const tools = chapter.tools(context);
+    const arm = tools.find((tool) => tool.name === "arm_purge")!;
+    const read = tools.find((tool) => tool.name === "read_gauge")!;
+
+    expect((await arm.execute({})).ok).toBe(true);
+    const firstExpiry = queuedExpiry.get(1);
+    expect(
+      firstExpiry,
+      "the first arm must schedule an expiry callback",
+    ).toBeDefined();
+
+    vi.setSystemTime(6_800);
+    expect((await arm.execute({})).ok).toBe(true);
+    firstExpiry!();
+
+    const reading = await read.execute({});
+    if (!reading.ok) {
+      throw new Error(
+        "read_gauge must succeed after the stale expiry callback",
+      );
+    }
+    expect(
+      reading.data,
+      "an obsolete expiry callback must not disarm the latest window",
+    ).toMatchObject({ armed: true });
+    chapter.unmount();
+  });
 });

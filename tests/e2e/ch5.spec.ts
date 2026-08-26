@@ -163,10 +163,18 @@ test("one handle alone never purges; both handles inside the armed window do", a
       "Space alone must not purge the drive",
     ).toBe(false);
 
+    // The two-handle proof needs its own full arm window. The preceding
+    // one-handle checks deliberately consume real time and must not make the
+    // positive path depend on scheduler jitter near the four-second deadline.
+    expect((await armWhenSafe(page)).outcome.ok).toBe(true);
     await page.mouse.down();
     await expect
-      .poll(() =>
-        page.evaluate(() => window.halcyonSim.getState().flags["drive.purged"]),
+      .poll(
+        () =>
+          page.evaluate(
+            () => window.halcyonSim.getState().flags["drive.purged"],
+          ),
+        { timeout: 2_000 },
       )
       .toBe(true);
     expect(
@@ -200,9 +208,15 @@ test("Two-Man Rule renders the accessible physical vent controls", async ({
 test("the armed window expires and read_gauge reports armed false", async ({
   page,
 }) => {
-  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
-  await page.waitForTimeout(4_400);
-  expect((await gauge(page)).armed).toBe(false);
+  const arm = await armWhenSafe(page);
+  expect(arm.outcome.ok).toBe(true);
+  expect(arm.outcome.data).toEqual({
+    armed_for_ms: 4_000,
+    next: "Crew must hold both handles simultaneously until the purge completes.",
+  });
+  await expect
+    .poll(async () => (await gauge(page)).armed, { timeout: 5_000 })
+    .toBe(false);
   expect(
     await page.evaluate(
       () => window.halcyonSim.getState().flags["drive.purged"],

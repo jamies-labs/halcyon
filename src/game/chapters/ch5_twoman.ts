@@ -13,6 +13,7 @@ let rightHeld = false;
 let bothSince: number | null = null;
 let watch: number | null = null;
 let disarmTimer: number | null = null;
+let armGeneration = 0;
 let cleanup: Array<() => void> = [];
 
 function pressure(): number {
@@ -90,6 +91,7 @@ export const ch5: Chapter = {
 
           armedUntil = Date.now() + T.armWindowMs;
           bothSince = null;
+          const generation = ++armGeneration;
           ctx.audio.alarm();
           ctx.speaker.say(
             "ARMED. Both vent handles, crew — NOW. Hold until the ring closes.",
@@ -98,6 +100,7 @@ export const ch5: Chapter = {
           ctx.recorder.addHuman("purge armed — two-man window open");
           if (disarmTimer !== null) window.clearTimeout(disarmTimer);
           disarmTimer = window.setTimeout(() => {
+            if (generation !== armGeneration) return;
             armedUntil = 0;
             if (ctx.store.get().flags[FLAGS.drivePurged] === true) return;
             ctx.speaker.say(
