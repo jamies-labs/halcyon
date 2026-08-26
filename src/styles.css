@@ -316,6 +316,91 @@ dd {
   transition: none;
 }
 
+.manifest-scene {
+  display: grid;
+  max-width: var(--size-content);
+  padding-block: var(--space-3);
+}
+
+.manifest-map {
+  display: block;
+  width: min(100%, 30rem);
+  height: auto;
+  overflow: visible;
+}
+
+.manifest-section {
+  cursor: pointer;
+  outline: none;
+}
+
+.manifest-section-panel {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 2;
+  transition:
+    stroke var(--motion-fast),
+    fill var(--motion-fast);
+}
+
+.manifest-section:hover .manifest-section-panel {
+  fill: var(--color-surface-raised);
+}
+
+.manifest-section:focus-visible .manifest-section-panel {
+  stroke: var(--color-focus);
+  stroke-width: 3;
+}
+
+.manifest-section-label {
+  fill: var(--color-text);
+  font-family: var(--font-utility);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.hatch-dot-open {
+  fill: var(--color-accent-strong);
+  animation: hatchblink 1.2s ease-in-out infinite;
+}
+
+.hatch-dot-jammed {
+  fill: var(--color-focus);
+  animation: hatchshake 0.5s linear infinite;
+}
+
+.section-flagged {
+  stroke: var(--color-focus);
+  animation: sectionpulse 0.8s ease-in-out infinite;
+}
+
+.section-acknowledged {
+  fill: var(--color-surface-raised);
+  stroke: var(--color-accent-strong);
+  stroke-width: 3;
+}
+
+@keyframes hatchblink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes hatchshake {
+  25% {
+    transform: translateX(-1px);
+  }
+  75% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes sectionpulse {
+  50% {
+    stroke-width: 3;
+  }
+}
+
 .speaker {
   min-height: var(--size-hit-target);
   padding: var(--space-2) var(--space-3);
