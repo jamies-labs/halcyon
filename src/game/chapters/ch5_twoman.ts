@@ -89,6 +89,7 @@ export const ch5: Chapter = {
           }
 
           armedUntil = Date.now() + T.armWindowMs;
+          bothSince = null;
           ctx.audio.alarm();
           ctx.speaker.say(
             "ARMED. Both vent handles, crew — NOW. Hold until the ring closes.",

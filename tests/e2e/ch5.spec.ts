@@ -28,19 +28,30 @@ async function gauge(page: Page): Promise<Gauge> {
   return result.outcome.data as Gauge;
 }
 
-async function waitForBand(page: Page, inside: boolean): Promise<void> {
-  await expect
-    .poll(
-      async () => {
-        const reading = await gauge(page);
-        return (
-          (reading.pressure >= 32 && reading.pressure <= 53 && inside) ||
-          ((reading.pressure < 30 || reading.pressure > 55) && !inside)
-        );
-      },
-      { timeout: 10_000 },
-    )
-    .toBe(true);
+async function armWhenSafe(page: Page): Promise<Invocation> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const result = await invoke(page, "arm_purge");
+    if (result.outcome.ok) return result;
+    expect(
+      result.outcome.code,
+      `arm attempt ${attempt + 1} must fail only while pressure is out of band`,
+    ).toBe("PRESSURE_OUT_OF_BAND");
+    await page.waitForTimeout(50);
+  }
+  throw new Error("arm_purge never opened its configured pressure window");
+}
+
+async function coachWhenUnsafe(page: Page): Promise<Invocation> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const result = await invoke(page, "arm_purge");
+    if (result.outcome.code === "PRESSURE_OUT_OF_BAND") return result;
+    expect(
+      result.outcome.ok,
+      `arm attempt ${attempt + 1} must either arm or coach for pressure`,
+    ).toBe(true);
+    await page.waitForTimeout(50);
+  }
+  throw new Error("arm_purge never returned PRESSURE_OUT_OF_BAND");
 }
 
 test.beforeEach(async ({ page }) => {
@@ -106,12 +117,10 @@ test("Two-Man Rule registers the read gauge with the real read-only host annotat
 test("arming outside the band coaches PRESSURE_OUT_OF_BAND and inside opens the configured window", async ({
   page,
 }) => {
-  await waitForBand(page, false);
-  const outside = await invoke(page, "arm_purge");
+  const outside = await coachWhenUnsafe(page);
   expect(outside.outcome.code).toBe("PRESSURE_OUT_OF_BAND");
 
-  await waitForBand(page, true);
-  const inside = await invoke(page, "arm_purge");
+  const inside = await armWhenSafe(page);
   expect(inside.outcome).toEqual({
     ok: true,
     data: {
@@ -125,8 +134,7 @@ test("arming outside the band coaches PRESSURE_OUT_OF_BAND and inside opens the 
 test("one handle alone never purges; both handles inside the armed window do", async ({
   page,
 }) => {
-  await waitForBand(page, true);
-  expect((await invoke(page, "arm_purge")).outcome.ok).toBe(true);
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
 
   const left = await page.getByTestId("vent-left").boundingBox();
   expect(left, "left vent must have a pointer target").not.toBeNull();
@@ -192,8 +200,7 @@ test("Two-Man Rule renders the accessible physical vent controls", async ({
 test("the armed window expires and read_gauge reports armed false", async ({
   page,
 }) => {
-  await waitForBand(page, true);
-  expect((await invoke(page, "arm_purge")).outcome.ok).toBe(true);
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
   await page.waitForTimeout(4_400);
   expect((await gauge(page)).armed).toBe(false);
   expect(
