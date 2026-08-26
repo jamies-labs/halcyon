@@ -134,18 +134,29 @@ test("flagging the jammed damaged section coaches with SECTION_UNREACHABLE", asy
 test("flag_section accepts only its section enum and integer priority range", async ({
   page,
 }) => {
-  for (const priority of [1, 3]) {
+  for (const { sectionId, priority } of [
+    { sectionId: "s2", priority: 1 },
+    { sectionId: "s4", priority: 3 },
+  ]) {
     const invocation = (await page.evaluate(
-      (value) =>
+      ({ id, value }) =>
         window.halcyonSim.invoke("flag_section", {
-          section_id: "s2",
+          section_id: id,
           priority: value,
         }),
-      value,
+      { id: sectionId, value: priority },
     )) as Invocation;
-    expect(invocation.outcome.ok, `priority ${priority} must be accepted`).toBe(
-      true,
-    );
+    expect(
+      invocation.outcome,
+      `${sectionId} at priority ${priority} must create a triage flag`,
+    ).toMatchObject({
+      ok: true,
+      data: {
+        section_id: sectionId,
+        flagged: true,
+        awaiting: "crew acknowledgement on the deck map",
+      },
+    });
   }
 
   for (const args of [
