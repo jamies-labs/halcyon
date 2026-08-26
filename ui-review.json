@@ -5,30 +5,46 @@
       "route": "/",
       "state": "resolved",
       "variant": "host-ready",
-      "viewports": [1280],
+      "viewports": [
+        1280
+      ],
       "theme": "light",
       "ready_selector": "[data-testid=mission-console]",
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
-        "changedPaths": ["src/webmcp/registry.ts", "src/webmcp/shim.ts"]
+        "requirementKeys": [],
+        "changedPaths": [
+          "src/webmcp/registry.ts",
+          "src/webmcp/shim.ts"
+        ]
       }
     },
     {
       "route": "/",
       "state": "resolved",
       "variant": "crew-briefing",
-      "viewports": [375, 1280],
+      "viewports": [
+        375,
+        1280
+      ],
       "theme": "light",
       "ready_selector": "[data-testid=mission-console]",
       "setup": {
         "interactions": [
-          { "action": "click", "selector": "[data-testid=open-crew-briefing]" }
+          {
+            "action": "click",
+            "selector": "[data-testid=open-crew-briefing]"
+          }
         ]
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
-        "changedPaths": ["src/main.ts", "src/styles.css"],
-        "triggerOnlyPaths": ["DESIGN.md"]
+        "requirementKeys": [],
+        "changedPaths": [
+          "src/main.ts",
+          "src/styles.css"
+        ],
+        "triggerOnlyPaths": [
+          "DESIGN.md"
+        ]
       }
     }
   ]
