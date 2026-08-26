@@ -17,7 +17,7 @@ declare global {
   }
 }
 
-test("gate shows without sim param and Start reveals Chapter 1", async ({
+test("gate shows without sim param and Start reveals the Chapter 1 breaker", async ({
   page,
 }) => {
   await page.goto("/?fast=1");
@@ -27,9 +27,7 @@ test("gate shows without sim param and Start reveals Chapter 1", async ({
   await page.getByTestId("gate-start").click();
 
   await expect(page.getByTestId("gate")).toBeHidden();
-  await expect(
-    page.getByTestId("chapter-missing").getByRole("heading"),
-  ).toHaveText("Chapter 1 is under construction.");
+  await expect(page.getByTestId("breaker-handle")).toBeVisible();
 });
 
 test("sim mode auto-starts and exposes chapter one via halcyonSim", async ({
@@ -42,7 +40,7 @@ test("sim mode auto-starts and exposes chapter one via halcyonSim", async ({
     () => window.halcyonSim.getState().chapter,
   );
   expect(chapter).toBe(1);
-  await expect(page.getByTestId("chapter-missing")).toBeVisible();
+  await expect(page.getByTestId("breaker-handle")).toBeVisible();
 });
 
 test("seeded chapter jump registers global tools and delivers broadcasts", async ({
