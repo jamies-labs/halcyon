@@ -72,6 +72,13 @@ describe("Chapter 5 Two-Man Rule", () => {
     });
   });
 
+  it("starts the Chapter Five drive state as explicitly not purged", () => {
+    expect(
+      initialState().flags["drive.purged"],
+      "a lone handle must leave the observable purge state false, not unset",
+    ).toBe(false);
+  });
+
   it("requires a fresh full hold after every successful arm", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
@@ -145,7 +152,7 @@ describe("Chapter 5 Two-Man Rule", () => {
     expect(
       context.store.get().flags["drive.purged"],
       "hold time from the first window must not carry into the re-armed window",
-    ).toBeUndefined();
+    ).toBe(false);
 
     await vi.advanceTimersByTimeAsync(100);
     expect(context.store.get().flags["drive.purged"]).toBe(true);

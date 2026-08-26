@@ -38,7 +38,7 @@ describe("Store", () => {
       lights: 0,
       heaters: 0,
     });
-    expect(state.flags).toEqual({});
+    expect(state.flags).toEqual({ "drive.purged": false });
   });
 
   it("update mutates and notifies subscribers once per update", () => {

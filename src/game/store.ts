@@ -24,7 +24,9 @@ export function initialState(): ShipState {
       lights: 0,
       heaters: 0,
     },
-    flags: {},
+    flags: {
+      "drive.purged": false,
+    },
   };
 }
 
