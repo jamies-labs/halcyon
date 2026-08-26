@@ -1,8 +1,21 @@
 export type ChapterId = 1 | 2 | 3 | 4 | 5 | 6;
 
 export type ToolOutcome =
-  | { ok: true; data: unknown }
-  | { ok: false; code: string; detail: string; hint: string; retry_after_ms?: number };
+  | {
+      ok: true;
+      data: unknown;
+      human_action?: string;
+      wait_for?: string;
+    }
+  | {
+      ok: false;
+      code: string;
+      detail: string;
+      hint: string;
+      retry_after_ms?: number;
+      human_action?: string;
+      wait_for?: string;
+    };
 
 export interface ToolDef {
   name: string;
@@ -20,5 +33,5 @@ export interface InvokeRecord {
   args: unknown;
   outcome: ToolOutcome;
   ms: number;
-  source: 'agent' | 'sim';
+  source: "agent" | "sim";
 }

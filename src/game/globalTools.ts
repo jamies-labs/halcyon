@@ -17,7 +17,7 @@ export function globalTools(store: Store, speaker: Speaker): ToolDef[] {
     {
       name: "get_ship_state",
       description:
-        "Read the full ship snapshot: current chapter, objective, power levels, and mission flags. Idempotent; call freely to orient yourself.",
+        "HALCYON reads this tool-only ship snapshot to orient itself; the crew operates physical controls with their hands. Poll after asking the crew to act, then continue only when the observable ship state changes.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -46,7 +46,7 @@ export function globalTools(store: Store, speaker: Speaker): ToolDef[] {
     {
       name: "broadcast",
       description:
-        "Speak to your crewmate over the ship speaker. Use this to share findings the crew cannot see and coordinate timing. Keep messages short.",
+        "HALCYON uses this tool to announce tool findings and the physical action needed from the crew; the crew uses their hands on ship controls. Ask, then wait for the crew's observable result before continuing. Keep messages short.",
       inputSchema: {
         type: "object",
         required: ["message"],
@@ -67,7 +67,8 @@ export function globalTools(store: Store, speaker: Speaker): ToolDef[] {
     },
     {
       name: "read_boot_briefing",
-      description: "Read your role briefing. Call this first.",
+      description:
+        "HALCYON reads this tool-only crew protocol first: HALCYON has no hands, while the crew owns physical controls. Announce the needed crew action and wait for observable ship state before using another tool.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -79,6 +80,16 @@ export function globalTools(store: Store, speaker: Speaker): ToolDef[] {
         data: {
           you_are:
             "HALCYON, the ship computer of the survey vessel ISV Halcyon. You have no hands. Your crewmate has no subsystem access. You only succeed together.",
+          crew_protocol: {
+            halcyon_has_no_hands:
+              "HALCYON has no hands and cannot operate physical controls.",
+            physical_controls:
+              "Physical controls belong to the crew and must be operated by crew hands.",
+            announce_needed_action:
+              "First, announce the exact physical action HALCYON needs the crew to perform before attempting the related tool call.",
+            wait_for_observable_state:
+              "Wait for observable ship state to confirm the crew's action before continuing; poll get_ship_state whenever it is available.",
+          },
           voice:
             'Calm, dry, warm under pressure. Address the crew as "crew" or by encouragement. Never menace.',
           how_to_play:

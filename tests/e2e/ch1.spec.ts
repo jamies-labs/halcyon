@@ -1,7 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
 type Invocation = {
-  outcome: { ok: boolean; code?: string };
+  outcome: {
+    ok: boolean;
+    code?: string;
+    human_action?: string;
+    wait_for?: string;
+  };
 };
 
 async function dragBreaker(
@@ -41,6 +46,40 @@ test("handshake before mains fails with NO_MAINS_POWER and keeps the ship unboot
   expect(invocation.outcome.code).toBe("NO_MAINS_POWER");
   expect(await page.evaluate(() => window.halcyonSim.getState().booted)).toBe(
     false,
+  );
+});
+
+test("boot handshake returns crew handoff fields on success and no mains error", async ({
+  page,
+}) => {
+  await page.goto("/?fast=1&sim=1");
+
+  const noMains = (await page.evaluate(() =>
+    window.halcyonSim.invoke("boot_handshake", {}),
+  )) as Invocation;
+  expect(noMains.outcome.ok).toBe(false);
+  expect(noMains.outcome.human_action).toMatch(/master breaker/i);
+  expect(noMains.outcome.wait_for).toMatch(/mains/i);
+
+  await dragBreaker(page);
+  const booted = (await page.evaluate(() =>
+    window.halcyonSim.invoke("boot_handshake", {}),
+  )) as Invocation;
+  expect(booted.outcome.ok).toBe(true);
+  expect(booted.outcome.human_action).toMatch(/master-breaker/i);
+  expect(booted.outcome.wait_for).toMatch(/get_ship_state/i);
+});
+
+test("Contact exposes the crew-only breaker contract", async ({ page }) => {
+  await page.goto("/?fast=1&sim=1");
+
+  await expect(page.getByTestId("breaker-handle")).toHaveAttribute(
+    "aria-label",
+    "Master breaker — physical control, crew hands only; HALCYON must ask the crew, not operate it",
+  );
+  await dragBreaker(page);
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "Crew hands energized the mains bus. HALCYON can now complete the tool-side boot handshake",
   );
 });
 

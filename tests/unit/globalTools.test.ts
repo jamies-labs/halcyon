@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { globalTools, OBJECTIVES } from "../../src/game/globalTools";
+import { ch1 } from "../../src/game/chapters/ch1_contact";
+import type { ChapterCtx } from "../../src/game/chapters/types";
 import { seedForChapter } from "../../src/ui/chapterSelect";
 import { initialState, Store } from "../../src/game/store";
 import type { Speaker } from "../../src/ui/speaker";
@@ -79,5 +81,55 @@ describe("chapter seed and global tools", () => {
     });
     expect(sent).toEqual({ ok: true, data: { delivered: true } });
     expect(say).toHaveBeenCalledWith("Good morning, crew.", "dry");
+  });
+
+  it("publishes the crew protocol in every global tool description and boot briefing", async () => {
+    const store = new Store(initialState());
+    const speaker = { say: vi.fn() } as unknown as Speaker;
+    const tools = globalTools(store, speaker);
+    const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
+
+    for (const name of ["get_ship_state", "broadcast", "read_boot_briefing"]) {
+      const description = toolsByName.get(name)?.description;
+      expect(
+        description,
+        `${name} must identify HALCYON's tool role`,
+      ).toContain("HALCYON");
+      expect(
+        description,
+        `${name} must identify the crew's physical role`,
+      ).toContain("crew");
+    }
+
+    const handshake = ch1
+      .tools({} as ChapterCtx)
+      .find((tool) => tool.name === "boot_handshake");
+    expect(
+      handshake,
+      "boot_handshake must be available in Chapter 1",
+    ).toBeDefined();
+    expect(
+      handshake?.description,
+      "boot_handshake must identify HALCYON's tool role",
+    ).toContain("HALCYON");
+    expect(
+      handshake?.description,
+      "boot_handshake must identify the crew's physical role",
+    ).toContain("crew");
+
+    const briefing = toolsByName.get("read_boot_briefing");
+    expect(briefing, "read_boot_briefing must be available").toBeDefined();
+    const outcome = await briefing!.execute({});
+    expect(outcome).toMatchObject({
+      ok: true,
+      data: {
+        crew_protocol: {
+          halcyon_has_no_hands: expect.stringContaining("no hands"),
+          physical_controls: expect.stringContaining("crew"),
+          announce_needed_action: expect.stringContaining("announce"),
+          wait_for_observable_state: expect.stringContaining("observable"),
+        },
+      },
+    });
   });
 });
