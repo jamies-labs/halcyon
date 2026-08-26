@@ -38,7 +38,25 @@ if (!/^revision:\s*1\s*$/m.test(marker)) fail("marker revision must be 1");
 
 const tokenPath = marker.match(/^tokens_file:\s*["']([^"']+)["']\s*$/m)?.[1];
 if (!tokenPath) fail("marker must declare tokens_file");
-readProjectFile(tokenPath);
+const tokens = readProjectFile(tokenPath);
+
+const dishStyles =
+  tokens
+    .match(/\.dish-(?:pad|knob|readout)[\s\S]*?(?=\n\.|\n@|$)/g)
+    ?.join("\n") ?? "";
+if (!dishStyles.includes(".dish-pad"))
+  fail("Antenna dish styles must be present in the canonical token source");
+for (const token of [
+  "var(--color-surface)",
+  "var(--color-border)",
+  "var(--size-hit-target)",
+  "var(--radius-control)",
+]) {
+  if (!dishStyles.includes(token))
+    fail(`Antenna dish styles must use ${token}`);
+}
+if (/#|\brgb\(|\bhsl\(|border-radius:\s*\d/.test(dishStyles))
+  fail("Antenna dish styles must not introduce raw color or radius values");
 
 for (const field of ["shell_files", "component_roots"]) {
   for (const path of listFromMarker(marker, field)) readProjectFile(path);

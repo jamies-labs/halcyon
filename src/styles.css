@@ -403,6 +403,52 @@ dd {
   color: var(--color-accent-strong);
 }
 
+.dish-pad {
+  position: relative;
+  width: min(22.5rem, 90%);
+  height: 11.25rem;
+  margin-top: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  touch-action: none;
+}
+
+.dish-knob {
+  position: absolute;
+  width: var(--size-hit-target);
+  height: var(--size-hit-target);
+  border: var(--border-width) solid var(--color-focus);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  color: var(--color-focus);
+  cursor: grab;
+  touch-action: none;
+  transform: translate(-50%, -50%);
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast);
+}
+
+.dish-knob:hover {
+  background: var(--color-accent);
+}
+
+.dish-knob:active {
+  cursor: grabbing;
+}
+
+.dish-knob:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-width);
+}
+
+.dish-readout {
+  margin-top: var(--space-1);
+  color: var(--color-muted);
+  font-family: var(--font-utility);
+}
+
 .hatch-dot-open {
   fill: var(--color-accent-strong);
   animation: hatchblink 1.2s ease-in-out infinite;
