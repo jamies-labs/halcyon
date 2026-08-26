@@ -122,13 +122,8 @@
         "settled_selector": "[data-testid=fuse-tray]"
       },
       "covers": {
-        "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch3_power.ts",
-          "src/game/chapters/index.ts",
-          "src/game/timings.ts",
-          "src/styles.css"
-        ],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "changedPaths": ["src/game/chapters/ch3_power.ts"],
         "triggerOnlyPaths": []
       }
     },

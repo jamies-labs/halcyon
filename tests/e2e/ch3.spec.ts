@@ -6,6 +6,8 @@ type Invocation = {
     code?: string;
     detail?: string;
     data?: unknown;
+    human_action?: unknown;
+    wait_for?: unknown;
   };
 };
 
@@ -105,6 +107,89 @@ test("Power registers read_power_telemetry with the real read-only host annotati
       routed: false,
     },
   });
+});
+
+test("Power tool descriptions declare the agent and crew roles", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const descriptions: Array<{ name: string; description: string }> = [];
+    Object.defineProperty(window, "__powerToolDescriptions", {
+      configurable: true,
+      value: descriptions,
+    });
+    Object.defineProperty(document, "modelContext", {
+      configurable: true,
+      value: {
+        registerTool(tool: { name: string; description: string }) {
+          descriptions.push({ name: tool.name, description: tool.description });
+          return { unregister() {} };
+        },
+      },
+    });
+  });
+  await page.goto("/?fast=1&sim=1&ch=3");
+
+  const descriptions = await page.evaluate(
+    () =>
+      (
+        window as typeof window & {
+          __powerToolDescriptions: Array<{ name: string; description: string }>;
+        }
+      ).__powerToolDescriptions,
+  );
+  const telemetry = descriptions.find(
+    ({ name }) => name === "read_power_telemetry",
+  );
+  const routePower = descriptions.find(({ name }) => name === "route_power");
+
+  expect(telemetry?.description).toContain("HALCYON");
+  expect(telemetry?.description).toContain("crew");
+  expect(telemetry?.description).toContain("physical fuses");
+  expect(routePower?.description).toContain("HALCYON");
+  expect(routePower?.description).toContain("crew");
+  expect(routePower?.description).toContain("physical fuses");
+  expect(routePower?.description).toContain("hold stable");
+});
+
+test("route power returns crew handoff fields for accepted and rejected routes", async ({
+  page,
+}) => {
+  const accepted = await route(page, minimumRoute);
+  const overBudget = await route(page, [
+    { subsystem: "life_support", amps: 40 },
+    { subsystem: "drive", amps: 40 },
+  ]);
+  const brownout = await route(page, [{ subsystem: "drive", amps: 10 }]);
+  const duplicate = await route(page, [
+    { subsystem: "lights", amps: 4 },
+    { subsystem: "lights", amps: 5 },
+  ]);
+
+  for (const [label, invocation, code] of [
+    ["accepted route", accepted, undefined],
+    ["over-budget route", overBudget, "OVER_BUDGET"],
+    ["brownout route", brownout, "BROWNOUT"],
+    ["duplicate-subsystem route", duplicate, "DUPLICATE_SUBSYSTEM"],
+  ] as const) {
+    expect(invocation.outcome.code, `${label} code`).toBe(code);
+    expect(
+      typeof invocation.outcome.human_action,
+      `${label} must name the crew action`,
+    ).toBe("string");
+    expect(
+      (invocation.outcome.human_action as string).trim().length,
+      `${label} human_action must be non-empty`,
+    ).toBeGreaterThan(0);
+    expect(
+      typeof invocation.outcome.wait_for,
+      `${label} must name the wait condition`,
+    ).toBe("string");
+    expect(
+      (invocation.outcome.wait_for as string).trim().length,
+      `${label} wait_for must be non-empty`,
+    ).toBeGreaterThan(0);
+  }
 });
 
 test("route_power rejects invalid allocations, duplicates, and an 80A request", async ({
@@ -220,6 +305,36 @@ test("valid routing pops fuses; seating them all plus stability completes the ch
   );
 });
 
+test("Power fuses are crew-only and still complete the stable route", async ({
+  page,
+}) => {
+  const crewOnlyName =
+    "physical control, crew hands only; HALCYON must ask the crew, not operate it";
+  expect((await route(page, minimumRoute)).outcome.ok).toBe(true);
+
+  const fuses = page.locator("[data-fuse]");
+  await expect(fuses).toHaveCount(5);
+  for (let index = 0; index < (await fuses.count()); index += 1) {
+    await expect(fuses.nth(index)).toHaveAttribute(
+      "aria-label",
+      new RegExp(crewOnlyName),
+    );
+  }
+
+  await seatFuses(page, [
+    "life_support",
+    "comms",
+    "sensors",
+    "lights",
+    "drive",
+  ]);
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.halcyonSim.getState().flags["power.routed"]),
+    )
+    .toBe(true);
+});
+
 test("rerouting during stability requires seating the new fuse set", async ({
   page,
 }) => {
@@ -291,4 +406,45 @@ test("chapter select exposes the Power fuse tray without a route control", async
   const sceneText = await page.getByTestId("stage").textContent();
   expect(sceneText).not.toContain("18A");
   expect(sceneText).not.toContain("read_power_telemetry");
+});
+
+test("Power broadcast and review scenario preserve cooperative evidence", async ({
+  page,
+}) => {
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "HALCYON routes power; crew physically seats each popped fuse and holds the bus stable.",
+  );
+
+  const response = await page.request.get("/ui-review.json");
+  expect(
+    response.ok(),
+    "the review manifest must be served to its runner",
+  ).toBe(true);
+  const manifest = (await response.json()) as {
+    scenarios: Array<{
+      route: string;
+      state: string;
+      variant?: string;
+      viewports: number[];
+      theme?: string;
+      ready_selector: string;
+      covers: { changedPaths: string[]; requirementKeys: unknown };
+    }>;
+  };
+  const scenario = manifest.scenarios.find(
+    ({ variant }) => variant === "chapter-three-power",
+  );
+
+  expect(scenario?.route).toBe("/");
+  expect(scenario?.state).toBe("resolved");
+  expect(scenario?.viewports).toEqual([375, 1280]);
+  expect(scenario?.theme).toBe("light");
+  expect(scenario?.ready_selector).toBe("[data-testid=fuse-tray]");
+  expect(scenario?.covers.changedPaths).toContain(
+    "src/game/chapters/ch3_power.ts",
+  );
+  expect(Array.isArray(scenario?.covers.requirementKeys)).toBe(true);
+  for (const key of scenario?.covers.requirementKeys ?? []) {
+    expect(key).toMatch(/^AC\d+/);
+  }
 });
