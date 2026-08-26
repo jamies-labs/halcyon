@@ -35,7 +35,7 @@ function acknowledgeSection(id: SectionId, ctx: ChapterCtx): void {
     state.flags[FLAGS.manifestFlagged] = ["s2", "s4", "s5"];
   });
   ctx.speaker.say(
-    "Triage locked: s2, s4, s5. Good eyes, crew — s6 will have to wait for a bigger crowbar.",
+    "HALCYON flagged the manifest; crew deck-map confirmation is complete. Triage locked: s2, s4, s5 — s6 will have to wait for a bigger crowbar.",
     "calm",
   );
   ctx.complete();
@@ -58,7 +58,7 @@ function deckMap(ctx: ChapterCtx): SVGSVGElement {
       "data-section": id,
       role: "button",
       tabindex: "0",
-      "aria-label": `Section ${id.slice(1)}, hatch ${reachable ? "open" : "jammed"}`,
+      "aria-label": `Section ${id.slice(1)}, hatch ${reachable ? "open" : "jammed"} — physical control, crew hands only; HALCYON must ask the crew, not operate it`,
     });
     const rect = svgEl("rect", {
       x: String(x),
@@ -114,7 +114,7 @@ export const ch2: Chapter = {
       {
         name: "read_damage_manifest",
         description:
-          "Read the internal damage manifest: status and notes for every hull section. The manifest does not know which hatches the crew can physically open.",
+          "HALCYON reads the internal damage manifest and flags damaged sections; the crew physically confirms reachable hatch sections on the deck map.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -135,7 +135,7 @@ export const ch2: Chapter = {
       {
         name: "flag_section",
         description:
-          "Flag a damaged hull section for repair triage. Your crewmate must acknowledge the flag on the deck map.",
+          "HALCYON flags a damaged hull section for repair triage; the crew physically confirms that reachable hatch section on the deck map.",
         inputSchema: {
           type: "object",
           required: ["section_id", "priority"],
@@ -153,6 +153,10 @@ export const ch2: Chapter = {
               code: "SECTION_NOMINAL",
               detail: `Section ${id} reports all readings nominal.`,
               hint: "Cross-check read_damage_manifest — only damaged sections need triage.",
+              human_action:
+                "Ask the crew to leave this nominal deck-map section unacknowledged and confirm a flagged damaged hatch instead.",
+              wait_for:
+                "Wait for the crew acknowledgement on a flagged reachable deck-map section; this nominal section will not acknowledge.",
             };
           }
           if (!REACHABLE.has(id)) {
@@ -161,11 +165,19 @@ export const ch2: Chapter = {
               code: "SECTION_UNREACHABLE",
               detail: `The hatch to ${id} does not answer.`,
               hint: "Crew reports some hatches are jammed. Ask which sections they can physically reach, then flag those.",
+              human_action:
+                "Ask the crew not to operate this jammed deck-map hatch and to acknowledge a flagged reachable section instead.",
+              wait_for:
+                "Wait for the crew acknowledgement on a flagged reachable deck-map section; this jammed hatch cannot acknowledge.",
             };
           }
           if (flagged.has(id)) {
             return {
               ok: true,
+              human_action:
+                "Ask the crew to acknowledge this flagged section on the physical deck map.",
+              wait_for:
+                "Wait until the flagged deck-map section is acknowledged before continuing triage.",
               data: { section_id: id, already_flagged: true },
             };
           }
@@ -175,6 +187,10 @@ export const ch2: Chapter = {
           ctx.audio.click();
           return {
             ok: true,
+            human_action:
+              "Ask the crew to acknowledge this flagged section on the physical deck map.",
+            wait_for:
+              "Wait until the flagged deck-map section is acknowledged before continuing triage.",
             data: {
               section_id: id,
               flagged: true,
@@ -197,7 +213,7 @@ export const ch2: Chapter = {
       ),
     );
     ctx.speaker.say(
-      "Pulling the damage manifest now. Tell me which hatches move, crew — my cameras in the spine are gone.",
+      "HALCYON reads the damage manifest; crew confirms reachable hatch sections on the deck map. Tell me which hatches move — my cameras in the spine are gone.",
       "calm",
     );
   },
