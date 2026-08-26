@@ -5,30 +5,44 @@
       "route": "/",
       "state": "resolved",
       "variant": "gate-visible",
-      "viewports": [375, 1280],
+      "viewports": [
+        375,
+        1280
+      ],
       "theme": "light",
       "ready_selector": "[data-testid=gate]",
       "covers": {
-        "requirementKeys": ["AC1", "AC2", "AC4"],
-        "changedPaths": ["src/main.ts", "src/styles.css"],
-        "triggerOnlyPaths": ["DESIGN.md"]
+        "requirementKeys": [],
+        "changedPaths": [
+          "src/main.ts",
+          "src/styles.css"
+        ],
+        "triggerOnlyPaths": [
+          "DESIGN.md"
+        ]
       }
     },
     {
       "route": "/",
       "state": "resolved",
       "variant": "chapter-one-unbuilt",
-      "viewports": [375, 1280],
+      "viewports": [
+        375,
+        1280
+      ],
       "theme": "light",
       "ready_selector": "[data-testid=chapter-missing]",
       "setup": {
         "interactions": [
-          { "action": "click", "selector": "[data-testid=gate-start]" }
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          }
         ],
         "settled_selector": "[data-testid=chapter-missing]"
       },
       "covers": {
-        "requirementKeys": ["AC0"],
+        "requirementKeys": [],
         "changedPaths": [
           "src/ui/dom.ts",
           "src/ui/gate.ts",
@@ -42,18 +56,33 @@
       "route": "/",
       "state": "resolved",
       "variant": "recorder-open",
-      "viewports": [375, 1280],
+      "viewports": [
+        375,
+        1280
+      ],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-panel]",
       "setup": {
         "interactions": [
-          { "action": "click", "selector": "[data-testid=gate-start]" },
-          { "action": "click", "selector": "[data-testid=recorder-toggle]" }
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=recorder-toggle]"
+          }
         ],
         "settled_selector": "[data-testid=recorder-panel]"
       },
       "covers": {
-        "requirementKeys": ["AC3"],
+        "requirementKeys": [
+          "AC3",
+          "AC0",
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
         "changedPaths": [
           "src/ui/speaker.ts",
           "src/ui/recorder.ts",
