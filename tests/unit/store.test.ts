@@ -85,6 +85,7 @@ describe("timings", () => {
       replyDelayMs: 500,
       armWindowMs: 4_000,
       holdMs: 600,
+      throttleHoldMs: 1_000,
       burnCountdownMs: 20_000,
       advanceDelayMs: 200,
     });
