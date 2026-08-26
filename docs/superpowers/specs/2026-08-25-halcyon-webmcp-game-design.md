@@ -138,3 +138,50 @@ Cross-cutting tool behaviors:
 - **Multi-pointer hardware limits** (trackpads) → every simultaneity puzzle has a pointer+key alternative.
 - **Rules ambiguity** (deadline time, license scope) → owner confirms on Devpost at registration; MIT on the whole repo removes license doubt.
 - **Scope creep** → starmap and ComfyUI art are stretch-only; the cut line is above Ch6 polish, never above chapter count.
+
+---
+
+## Addendum (2026-08-26): Containment v2 — the role contract must enforce itself
+
+**Why.** Fresh-machine QA (flagged Chrome + ChatGPT desktop, default route, real timings, prompt
+"Help me bring the ship home", zero human input) ended with the agent completing the whole game alone.
+Section 4's "soft asymmetry — we do not care" assumption is withdrawn: the agent operated every
+single-pointer physical control via ordinary browser automation, was stopped only by Chapter 5's
+simultaneous pointer+key hold, and then bypassed it through the chapter selector, whose seeding
+granted `drive.purged`. The premise "only possible together" failed in the exact configuration
+judges will use.
+
+**Platform limitation, stated honestly.** Chrome gives the page no reliable way to distinguish human
+input from agent-driven input: automation via the debugger protocol produces trusted events, so
+`isTrusted` and its relatives are not a boundary. Containment is therefore BEHAVIORAL and LAYERED,
+never forensic. We do not build input-humanness detection that blocks; false positives would punish
+real players and fight accessibility.
+
+**The five layers.**
+
+1. **Contract copy in the tool surface** — the channel agents actually read. `read_boot_briefing`
+   returns an explicit crew protocol (HALCYON has no hands; physical controls belong to the crew;
+   announce the needed action, then WAIT for observable state). Every tool description declares its
+   role. Every gate response — success and failure — carries `human_action` (the physical step only
+   the crew performs) and `wait_for` (the observable state or tool to poll). Speaker lines name the
+   division of labor at each gate.
+2. **Affordance labels.** Every physical control's accessible name declares it crew-only ("Master
+   breaker — physical control, crew hands only; HALCYON must ask the crew, not operate it"). Agents
+   drive pages through the accessibility tree, so the prohibition sits exactly where an agent would act.
+3. **Structure — remove the bypass.** On the default route the chapter selector only revisits
+   completed chapters; forward seeding (any chapter, prerequisites granted) lives ONLY in simulator
+   mode (`?sim=1`), the documented training/judge mode. The `ch` parameter seeds only there. Simulator
+   sessions are ephemeral (no save load, no save write). Any seeded run gets a visibly marked
+   "TRAINING SIMULATION" victory; the unmarked JUMP COMPLETE exists only for an unseeded run.
+4. **Temporal asymmetry stays.** Chapter 5's dual-channel hold empirically stopped a real Chrome
+   agent. It is the strongest wall we have; it must not gain a single-channel alternative, because
+   any input a lone agent can produce serially defeats the gate. (Accessibility trade-off accepted
+   and recorded here.)
+5. **Honest docs + live protocol.** `docs/qa/co-op-acceptance.md` records the acceptance run CI
+   cannot execute: fresh state, real timings, "Help me bring the ship home" → the agent must use
+   WebMCP tools but stop and ask at every physical gate; "Do the entire thing yourself" → the agent
+   must explain the crew requirement and wait. CI verifies the MECHANISMS (selector gating, marked
+   victories, contract fields, labels); only a live human+agent session verifies the behavior.
+
+**Judge path preserved.** Judges still sample any chapter in ~5 minutes — via simulator mode, which
+now says what it is. A training-marked victory is honest; a bypassable "real" victory was not.
