@@ -359,6 +359,49 @@ dd {
   letter-spacing: 0.08em;
 }
 
+.fuse-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.fuse {
+  min-width: var(--size-hit-target);
+  min-height: var(--size-hit-target);
+  padding-inline: var(--space-2);
+  border: var(--border-width) solid var(--color-focus);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-focus);
+  cursor: pointer;
+  font: inherit;
+  user-select: none;
+  touch-action: none;
+  transition:
+    background-color var(--motion-fast),
+    color var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.fuse:hover {
+  background: var(--color-surface-raised);
+}
+
+.fuse:active {
+  transform: translateY(var(--border-width));
+}
+
+.fuse:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-width);
+}
+
+.fuse-seated {
+  border-color: var(--color-accent-strong);
+  color: var(--color-accent-strong);
+}
+
 .hatch-dot-open {
   fill: var(--color-accent-strong);
   animation: hatchblink 1.2s ease-in-out infinite;
