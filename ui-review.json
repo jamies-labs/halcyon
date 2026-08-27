@@ -4,10 +4,10 @@
     {
       "route": "/",
       "state": "resolved",
-      "variant": "campaign-selector",
+      "variant": "gate-visible",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=chapter-select]",
+      "ready_selector": "[data-testid=gate]",
       "covers": {
         "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
         "changedPaths": [
@@ -203,7 +203,7 @@
         "settled_selector": "[data-testid=inject-tap]"
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
         "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
