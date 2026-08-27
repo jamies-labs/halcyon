@@ -5,15 +5,23 @@ export type Subsystem =
 
 export interface ShipState {
   chapter: ChapterId;
+  /** Furthest genuine campaign chapter, retained while viewing an earlier one. */
+  campaignChapter: ChapterId;
   booted: boolean;
   chapterDone: Record<ChapterId, boolean>;
   power: Record<Subsystem, number>;
   flags: Record<string, unknown>;
 }
 
+/** Simulator state is an explicit URL opt-in, never inferred from progress. */
+export function isSimulatorSession(search: string): boolean {
+  return new URLSearchParams(search).get("sim") === "1";
+}
+
 export function initialState(): ShipState {
   return {
     chapter: 1,
+    campaignChapter: 1,
     booted: false,
     chapterDone: { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false },
     power: {

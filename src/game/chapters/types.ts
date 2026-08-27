@@ -14,6 +14,7 @@ export const FLAGS = {
 } as const;
 
 export interface ChapterCtx {
+  isSimulatorSession: boolean;
   store: Store;
   registry: ToolRegistry;
   audio: AudioEngine;

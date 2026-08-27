@@ -12,6 +12,7 @@
     "Arial Narrow", "Roboto Condensed", "Helvetica Neue", sans-serif;
   --font-body: Inter, ui-sans-serif, system-ui, sans-serif;
   --font-utility: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  --font-size-caption: 0.75rem;
   --space-1: 0.5rem;
   --space-2: 1rem;
   --space-3: 1.5rem;
@@ -207,6 +208,15 @@ dd {
   flex: 1 1 auto;
   flex-wrap: wrap;
   gap: var(--space-1);
+}
+
+.chapter-select-mode {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--color-accent);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.08em;
 }
 
 .chapter-select button,

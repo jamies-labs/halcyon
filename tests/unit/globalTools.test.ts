@@ -2,11 +2,35 @@ import { describe, expect, it, vi } from "vitest";
 import { globalTools, OBJECTIVES } from "../../src/game/globalTools";
 import { ch1 } from "../../src/game/chapters/ch1_contact";
 import type { ChapterCtx } from "../../src/game/chapters/types";
-import { seedForChapter } from "../../src/ui/chapterSelect";
+import { seedForChapter, selectChapter } from "../../src/ui/chapterSelect";
 import { initialState, Store } from "../../src/game/store";
 import type { Speaker } from "../../src/ui/speaker";
 
 describe("chapter seed and global tools", () => {
+  it("keeps saved campaign progress unlocked while revisiting an older chapter", () => {
+    const store = new Store(initialState());
+    store.update((state) => {
+      state.chapter = 3;
+      state.campaignChapter = 3;
+      state.chapterDone = {
+        1: true,
+        2: true,
+        3: false,
+        4: false,
+        5: false,
+        6: false,
+      };
+    });
+
+    selectChapter(store, 1, false);
+    expect(store.get().chapter).toBe(1);
+    selectChapter(store, 3, false);
+    expect(store.get().chapter).toBe(3);
+    selectChapter(store, 4, false);
+    expect(store.get().chapter).toBe(3);
+    expect(store.get().campaignChapter).toBe(3);
+  });
+
   it("seeds every Chapter 6 prerequisite with distinct power and flag values", () => {
     const store = new Store(initialState());
 

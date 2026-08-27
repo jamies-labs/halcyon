@@ -6,6 +6,7 @@ import { el } from "./dom";
 export function seedForChapter(store: Store, chapter: ChapterId): void {
   store.update((state) => {
     state.chapter = chapter;
+    state.campaignChapter = chapter;
     if (chapter >= 2) state.booted = true;
     if (chapter > 2) state.flags[FLAGS.manifestFlagged] = ["s2", "s4", "s5"];
     if (chapter > 3) {
@@ -34,23 +35,58 @@ export function seedForChapter(store: Store, chapter: ChapterId): void {
   });
 }
 
+export function selectChapter(
+  store: Store,
+  chapter: ChapterId,
+  isSimulatorSession: boolean,
+): void {
+  if (isSimulatorSession) {
+    seedForChapter(store, chapter);
+    return;
+  }
+  const state = store.get();
+  if (chapter > state.campaignChapter) return;
+  store.update((next) => {
+    next.chapter = chapter;
+  });
+}
+
 export function mountChapterSelect(
   container: HTMLElement,
   store: Store,
   titles: Record<ChapterId, string>,
+  isSimulatorSession: boolean,
 ): void {
   const menu = el("nav", {
     class: "chapter-select",
     "data-testid": "chapter-select",
-    "aria-label": "Chapter simulator",
+    "aria-label": isSimulatorSession
+      ? "Training simulator chapter selector"
+      : "Campaign chapter selector",
   });
+  if (isSimulatorSession) {
+    menu.append(
+      el(
+        "p",
+        { class: "chapter-select-mode", "data-testid": "simulator-session" },
+        "TRAINING SIMULATION — prerequisites are temporary.",
+      ),
+    );
+  }
   for (const id of [1, 2, 3, 4, 5, 6] as ChapterId[]) {
     const button = el(
       "button",
       { type: "button", "data-testid": `goto-ch${id}` },
       `${id}. ${titles[id]}`,
     );
-    button.addEventListener("click", () => seedForChapter(store, id));
+    button.addEventListener("click", () =>
+      selectChapter(store, id, isSimulatorSession),
+    );
+    const refresh = () => {
+      button.disabled = !isSimulatorSession && id > store.get().campaignChapter;
+    };
+    refresh();
+    store.subscribe(refresh);
     menu.append(button);
   }
   container.append(menu);
