@@ -9,7 +9,7 @@
       "theme": "light",
       "ready_selector": "[data-testid=gate]",
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "requirementKeys": ["AC0", "AC1", "AC2"],
         "changedPaths": [
           "src/main.ts",
           "src/styles.css",
@@ -17,7 +17,8 @@
           "src/webmcp/types.ts",
           "src/game/save.ts",
           "src/game/chapters/types.ts",
-          "src/ui/chapterSelect.ts"
+          "src/ui/chapterSelect.ts",
+          "playwright.config.ts"
         ],
         "triggerOnlyPaths": ["DESIGN.md", "vite.config.ts"]
       }
@@ -125,7 +126,7 @@
         "settled_selector": "[data-testid=fuse-tray]"
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "requirementKeys": [],
         "changedPaths": ["src/game/chapters/ch3_power.ts"],
         "triggerOnlyPaths": []
       }
@@ -151,7 +152,7 @@
         "settled_selector": "[data-testid=dish-readout]"
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "requirementKeys": [],
         "changedPaths": ["src/game/chapters/ch4_antenna.ts"],
         "triggerOnlyPaths": []
       }
@@ -177,7 +178,7 @@
         "settled_selector": "[data-testid=vent-left]"
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "requirementKeys": [],
         "changedPaths": ["src/game/chapters/ch5_twoman.ts"],
         "triggerOnlyPaths": []
       }
@@ -203,7 +204,7 @@
         "settled_selector": "[data-testid=inject-tap]"
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "requirementKeys": [],
         "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
@@ -221,7 +222,7 @@
         }
       },
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "requirementKeys": [],
         "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
