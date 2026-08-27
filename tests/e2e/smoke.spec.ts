@@ -220,3 +220,73 @@ test("recorder panel lists a selected manual registry call", async ({
     "get_ship_state (sim",
   );
 });
+
+test("recorder opens and closes through pointer, touch and keyboard", async ({
+  page,
+}) => {
+  await page.goto("/?fast=1&sim=1&ch=6");
+  const toggle = page.getByTestId("recorder-toggle");
+  const panel = page.getByTestId("recorder-panel");
+  const close = page.getByTestId("recorder-close");
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(panel).toBeVisible();
+  await close.click();
+  await expect(panel).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toggle).toBeFocused();
+
+  await page.touchscreen.tap(
+    (await toggle.boundingBox())!.x + 4,
+    (await toggle.boundingBox())!.y + 4,
+  );
+  await expect(panel).toBeVisible();
+  await page.touchscreen.tap(
+    (await close.boundingBox())!.x + 4,
+    (await close.boundingBox())!.y + 4,
+  );
+  await expect(panel).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toggle).toBeFocused();
+
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(panel).toBeVisible();
+  await close.focus();
+  await page.keyboard.press("Enter");
+  await expect(panel).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toggle).toBeFocused();
+});
+
+test("recorder dock preserves Chapter 6 crew controls", async ({ page }) => {
+  await page.goto("/?fast=1&sim=1&ch=6");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByTestId("recorder-toggle").click();
+
+  const recorderBox = await page.getByTestId("recorder-panel").boundingBox();
+  const injectBox = await page.getByTestId("inject-tap").boundingBox();
+  expect(recorderBox, "recorder panel must have a desktop box").not.toBeNull();
+  expect(injectBox, "inject-tap must have a desktop box").not.toBeNull();
+  expect(injectBox!.x + injectBox!.width).toBeLessThanOrEqual(recorderBox!.x);
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  const crewPrecondition = await page.evaluate(async () => {
+    const vector = await window.halcyonSim.invoke("set_jump_vector", {
+      x: 0.42,
+      y: -1.07,
+      z: 3.14,
+    });
+    const pressurize = await window.halcyonSim.invoke("pressurize_injectors");
+    return {
+      vectorLocked: (vector as { outcome: { ok: boolean } }).outcome.ok,
+      injectorsPressurized: (pressurize as { outcome: { ok: boolean } }).outcome
+        .ok,
+    };
+  });
+  expect(crewPrecondition.vectorLocked).toBe(true);
+  expect(crewPrecondition.injectorsPressurized).toBe(true);
+  await page.getByTestId("inject-tap").click();
+  await expect(page.getByTestId("inject-tap")).toHaveText("PRIME 1/4");
+});

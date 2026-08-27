@@ -81,8 +81,66 @@ describe("design contract activation", () => {
       recorder,
       "recorder interaction scenario must be present",
     ).toBeDefined();
-    expect(recorder?.ready_selector).toBe("[data-testid=recorder-panel]");
+    expect(recorder?.ready_selector).toBe("[data-testid=recorder-toggle]");
     expect(recorder?.setup?.settled_selector).toBe(
+      "[data-testid=recorder-panel]",
+    );
+  });
+
+  it("declares tokenized recorder docking evidence for both closed and open states", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        route: string;
+        state: string;
+        variant?: string;
+        viewports: number[];
+        theme?: string;
+        ready_selector: string;
+        setup?: {
+          interactions?: Array<{ action: string; selector: string }>;
+          settled_selector?: string;
+        };
+        covers: { changedPaths: string[]; requirementKeys: unknown };
+      }>;
+    };
+    const closed = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-closed",
+    );
+    const opened = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-open",
+    );
+
+    for (const scenario of [closed, opened]) {
+      expect(
+        scenario,
+        "recorder review scenario must be present",
+      ).toBeDefined();
+      expect(scenario?.route).toBe("/");
+      expect(scenario?.state).toBe("resolved");
+      expect(scenario?.theme).toBe("light");
+      expect(scenario?.viewports).toEqual([375, 768, 1280]);
+      expect(scenario?.ready_selector).toBe("[data-testid=recorder-toggle]");
+      expect(scenario?.covers.changedPaths).toEqual(
+        expect.arrayContaining(["src/ui/recorder.ts", "src/styles.css"]),
+      );
+      const requirementKeys = scenario?.covers.requirementKeys;
+      expect(Array.isArray(requirementKeys)).toBe(true);
+      if (!Array.isArray(requirementKeys)) {
+        throw new Error("recorder requirement keys must be an array");
+      }
+      for (const key of requirementKeys) {
+        expect(key).toMatch(/^AC\d+/);
+      }
+    }
+
+    expect(closed?.setup).toBeUndefined();
+    expect(opened?.setup?.interactions).toEqual([
+      { action: "click", selector: "[data-testid=recorder-toggle]" },
+    ]);
+    expect(opened?.setup?.settled_selector).toBe(
       "[data-testid=recorder-panel]",
     );
   });
