@@ -149,7 +149,12 @@ describe("design contract activation", () => {
       }
     }
 
-    expect(closed?.setup).toBeUndefined();
+    expect(closed?.setup?.interactions).toEqual([
+      { action: "click", selector: "[data-testid=gate-start]" },
+    ]);
+    expect(closed?.setup?.settled_selector).toBe(
+      "[data-testid=recorder-toggle]",
+    );
     expect(opened?.setup?.interactions).toEqual([
       { action: "click", selector: "[data-testid=recorder-toggle]" },
     ]);

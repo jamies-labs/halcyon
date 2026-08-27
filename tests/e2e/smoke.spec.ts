@@ -17,6 +17,46 @@ declare global {
   }
 }
 
+test("publishes-halcyon-browser-metadata", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page).toHaveTitle("HALCYON — a rescue for two crew");
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
+    "href",
+    "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23050807'/><circle cx='8' cy='8' r='5' fill='none' stroke='%239ef0b6'/><circle cx='8' cy='8' r='1.5' fill='%239ef0b6'/></svg>",
+  );
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+    "content",
+    "HALCYON — a rescue for two crew",
+  );
+  await expect(page.locator('meta[property="og:description"]')).toHaveAttribute(
+    "content",
+    "A WebMCP co-op puzzle game: you and your agent, one damaged ship. Neither of you can save it alone.",
+  );
+});
+
+test("shows-judge-hint-without-a-second-gate-action", async ({ page }) => {
+  await page.goto("/");
+
+  const gate = page.getByTestId("gate");
+  const hint = gate.locator(".gate-hint");
+  const start = page.getByTestId("gate-start");
+  await expect(hint).toHaveText(
+    "Judging on a clock? The chapter menu up top jumps anywhere with prerequisites pre-seeded.",
+  );
+  await expect(gate.locator("button")).toHaveCount(1);
+  await expect(start).toHaveText("Wake the ship");
+  expect(
+    await gate.evaluate((element) => {
+      const children = Array.from(element.children);
+      return [
+        children.indexOf(element.querySelector(".gate-hint")!),
+        children.indexOf(element.querySelector(".gate-start")!),
+      ];
+    }),
+  ).toEqual([4, 5]);
+});
+
 test("gate shows without sim param and Start reveals the Chapter 1 breaker", async ({
   page,
 }) => {
