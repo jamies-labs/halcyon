@@ -126,6 +126,9 @@ function showVictory(ctx: ChapterCtx): void {
     "data-testid": "replay-timeline",
     "aria-label": "Flight recorder replay",
   });
+  if (ctx.isSimulatorSession) {
+    timeline.append(el("li", { class: "rec-human" }, "TRAINING SIMULATION"));
+  }
   for (const entry of ctx.recorder.getTimeline() as TimelineEntry[]) {
     timeline.append(
       el(
@@ -144,6 +147,18 @@ function showVictory(ctx: ChapterCtx): void {
         "aria-live": "polite",
       },
       el("h1", {}, "JUMP COMPLETE"),
+      ...(ctx.isSimulatorSession
+        ? [
+            el(
+              "p",
+              {
+                class: "victory-sign",
+                "data-testid": "training-simulation-marker",
+              },
+              "TRAINING SIMULATION",
+            ),
+          ]
+        : []),
       el(
         "p",
         {},

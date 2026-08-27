@@ -11,7 +11,7 @@ The result is a cooperative game, not a chat wrapper: tools change ship state, h
 3. Follow the ship's speaker and the moving controls for the human tasks; let the agent call the available tools for the computer tasks.
 4. If a tool returns a coaching error, adjust the attempt and try again. Nothing in the game is a punishment or a dead end.
 
-For a fast judging pass, use the **chapter-select** menu at the top of the page. Selecting a chapter seeds all prerequisite ship state, so a judge can sample any of the six chapters in about **five minutes** instead of replaying the whole voyage.
+For a fast judging pass, use the **chapter-select** menu in an explicit training session. It lets a judge sample any of the six chapters in about **five minutes** instead of replaying the whole voyage.
 
 ## Six WebMCP lessons
 
@@ -45,11 +45,13 @@ npx playwright test
 
 ## Simulator and judge shortcuts
 
-The game also includes a local crew simulator and timing shortcuts for repeatable demonstrations:
+The default campaign progression is sequential: begin at Chapter 1 and earn each later chapter through the two-crew handoffs. For a training or judge shortcut, open `?sim=1&ch=N`, where `N` is **1 through 6**. That explicit simulator route seeds the prerequisite state for the chosen chapter without changing the campaign route.
 
-- `?sim=1` starts the page in simulator mode, bypassing the crew-link start gate and enabling the ship's local simulator surface.
+The default campaign remains untouched: simulator sessions do not alter saved campaign progress. They are visibly marked **TRAINING SIMULATION** at chapter select and after a completed jump, including the flight-recorder replay.
+
+The game also includes timing shortcuts for repeatable demonstrations:
+
 - `?fast=1` uses the shortened gameplay timing contract, which is useful for local testing and demonstrations.
-- `?ch=N` opens a seeded chapter state, where `N` is **1 through 6**. It seeds the prerequisites for that chapter; for example, `?ch=4` prepares the earlier repair state before Antenna begins.
 
 These parameters compose, for example: `?sim=1&fast=1&ch=6`.
 

@@ -214,9 +214,13 @@ async function burnHome(page: Page): Promise<Invocation[]> {
   return [vector, pressurize, precheck, jump];
 }
 
-test("the full six-chapter simulation reaches jump home", async ({ page }) => {
-  test.setTimeout(180_000);
-  await page.goto("/?fast=1&sim=1");
+async function completeSixChapterRun(
+  page: Page,
+  route: string,
+  startsAtGate = false,
+): Promise<void> {
+  await page.goto(route);
+  if (startsAtGate) await page.getByTestId("gate-start").click();
   const bootResponse = await boot(page);
   const triageResponses = await triageManifest(page);
   await expect
@@ -256,5 +260,33 @@ test("the full six-chapter simulation reaches jump home", async ({ page }) => {
   await expect(page.getByTestId("victory-card")).toBeVisible();
   await expect(page.getByTestId("replay-timeline")).toContainText(
     "execute_jump",
+  );
+}
+
+test("training_full_run_marks_the_victory_card", async ({ page }) => {
+  test.setTimeout(180_000);
+  await completeSixChapterRun(page, "/?fast=1&sim=1");
+  await expect(page.getByTestId("victory-card")).toContainText(
+    "TRAINING SIMULATION",
+  );
+});
+
+test("training_full_run_marks_the_replay", async ({ page }) => {
+  test.setTimeout(180_000);
+  await completeSixChapterRun(page, "/?fast=1&sim=1");
+  await expect(page.getByTestId("replay-timeline")).toContainText(
+    "TRAINING SIMULATION",
+  );
+  await expect(page.getByTestId("replay-timeline")).toContainText(
+    "execute_jump",
+  );
+});
+
+test("unseeded_campaign_victory_is_unmarked", async ({ page }) => {
+  test.setTimeout(180_000);
+  await completeSixChapterRun(page, "/?fast=1", true);
+  await expect(page.getByTestId("victory-card")).toContainText("JUMP COMPLETE");
+  await expect(page.getByTestId("victory-card")).not.toContainText(
+    "TRAINING SIMULATION",
   );
 });

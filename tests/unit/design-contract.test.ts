@@ -129,4 +129,50 @@ describe("design contract activation", () => {
       expect(key).toMatch(/^AC\d+/);
     }
   });
+
+  it("declares one closed training-victory review scenario with the required marker", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        route: string;
+        state: string;
+        variant?: string;
+        ready_selector: string;
+        setup?: { local_storage?: Record<string, string> };
+        covers: { changedPaths: string[]; requirementKeys: unknown };
+      }>;
+    };
+    const trainingScenarios = parsed.scenarios.filter(
+      (scenario) => scenario.variant === "training-victory",
+    );
+
+    expect(
+      trainingScenarios,
+      "one scenario must capture the simulator victory state",
+    ).toHaveLength(1);
+    const training = trainingScenarios[0];
+    expect(training?.route).toBe("/");
+    expect(training?.state).toBe("resolved");
+    expect(training?.ready_selector).toBe(
+      "[data-testid=training-simulation-marker]",
+    );
+    expect(training?.setup?.local_storage).toBeDefined();
+    expect(training?.covers.changedPaths).toEqual(
+      expect.arrayContaining(["src/game/chapters/ch6_burn.ts"]),
+    );
+    const requirementKeys = training?.covers.requirementKeys;
+    expect(Array.isArray(requirementKeys)).toBe(true);
+    if (!Array.isArray(requirementKeys)) {
+      throw new Error("training victory requirement keys must be an array");
+    }
+    for (const key of requirementKeys) {
+      expect(typeof key).toBe("string");
+      if (typeof key !== "string") {
+        throw new Error("training victory requirement key must be a string");
+      }
+      expect(key).toMatch(/^AC\d+/);
+    }
+  });
 });
