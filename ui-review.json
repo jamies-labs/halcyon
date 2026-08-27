@@ -5,13 +5,14 @@
       "route": "/",
       "state": "resolved",
       "variant": "gate-visible",
-      "viewports": [375, 1280],
+      "viewports": [375, 768, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=gate]",
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2"],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
         "changedPaths": [
           "src/main.ts",
+          "src/ui/recorder.ts",
           "src/styles.css",
           "src/game/store.ts",
           "src/webmcp/types.ts",
@@ -47,19 +48,6 @@
           "src/styles.css"
         ],
         "triggerOnlyPaths": ["src/game/globalTools.ts"]
-      }
-    },
-    {
-      "route": "/",
-      "state": "resolved",
-      "variant": "recorder-closed",
-      "viewports": [375, 768, 1280],
-      "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
-      "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
-        "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
-        "triggerOnlyPaths": []
       }
     },
     {
