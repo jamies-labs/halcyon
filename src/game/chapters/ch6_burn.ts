@@ -9,6 +9,8 @@ const TAP_TOL_MS = FAST ? 10_000 : 180;
 const BPM = 90;
 const PERIOD_MS = 60_000 / BPM;
 const VECTOR_TOLERANCE = 0.011;
+const CREW_CONTROL_LABEL =
+  "physical control, crew hands only; HALCYON must ask the crew, not operate it";
 
 type JumpVector = { x: number; y: number; z: number };
 
@@ -163,7 +165,7 @@ export const ch6: Chapter = {
       {
         name: "set_jump_vector",
         description:
-          "Load the jump vector into the nav computer. It must match the vector decoded from the rescue buoy.",
+          "HALCYON loads the decoded jump vector; the crew alone primes the physical injectors, latches both physical blast shutters, and holds the physical throttle when HALCYON asks.",
         inputSchema: {
           type: "object",
           required: ["x", "y", "z"],
@@ -183,6 +185,10 @@ export const ch6: Chapter = {
               code: "NO_VECTOR_KNOWN",
               detail: "No decoded vector is on file.",
               hint: "Complete Chapter 4, then use the decoded jump_vector.",
+              human_action:
+                "Ask the crew to prepare the physical injector tap, blast shutters, and throttle while HALCYON awaits the decoded vector.",
+              wait_for:
+                "Wait for HALCYON to receive the decoded vector before calling set_jump_vector again.",
             };
           }
           const candidate = args as JumpVector;
@@ -192,11 +198,19 @@ export const ch6: Chapter = {
               code: "VECTOR_MISMATCH",
               detail: "That vector does not match the buoy reply.",
               hint: "Use the exact jump_vector from decode_reply.",
+              human_action:
+                "Ask the crew to prepare the physical injector tap, blast shutters, and throttle; HALCYON cannot operate them.",
+              wait_for:
+                "Wait for HALCYON to lock the decoded vector before calling pressurize_injectors.",
             };
           }
           burn.vectorSet = true;
           return {
             ok: true,
+            human_action:
+              "Ask the crew to prepare the physical injector tap, blast shutters, and throttle; HALCYON cannot operate them.",
+            wait_for:
+              "Wait for HALCYON to confirm vector_locked before calling pressurize_injectors.",
             data: { vector_locked: true, next: "pressurize_injectors" },
           };
         },
@@ -204,7 +218,7 @@ export const ch6: Chapter = {
       {
         name: "pressurize_injectors",
         description:
-          "Pressurize the drive injectors after the nav computer has locked the jump vector.",
+          "HALCYON pressurizes the drive injectors after locking the jump vector; the crew alone primes the physical injectors on the beat and latches both physical blast shutters.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -217,6 +231,10 @@ export const ch6: Chapter = {
               code: "SEQUENCE_ORDER",
               detail: "The nav computer has no locked vector.",
               hint: "Call set_jump_vector first.",
+              human_action:
+                "Ask the crew to keep hands ready for the physical injector tap and both blast shutters; HALCYON cannot operate them.",
+              wait_for:
+                "Wait for HALCYON to lock the jump vector before calling pressurize_injectors again.",
             };
           }
           burn.pressurized = true;
@@ -226,6 +244,10 @@ export const ch6: Chapter = {
           );
           return {
             ok: true,
+            human_action:
+              "Ask the crew to prime the physical injectors on the metronome and hold both physical blast shutters until they latch.",
+            wait_for:
+              "Wait for the crew to finish injector priming and both shutter holds before calling ignite_precheck.",
             data: {
               pressurized: true,
               next: "Crew primes injectors on the metronome and closes both shutters; then call ignite_precheck.",
@@ -236,7 +258,7 @@ export const ch6: Chapter = {
       {
         name: "ignite_precheck",
         description:
-          "Run the pre-ignition checklist. It returns GO or the exact remaining items.",
+          "HALCYON runs the pre-ignition checklist after the crew completes the physical injector and shutter work; the crew alone holds the physical throttle after HALCYON returns GO.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -250,6 +272,10 @@ export const ch6: Chapter = {
               code: "NOT_READY",
               detail: `Missing: ${missingItems.join("; ")}`,
               hint: "Clear every item, then call ignite_precheck again.",
+              human_action:
+                "Ask the crew to complete the remaining physical injector priming and blast-shutter holds; HALCYON cannot do them.",
+              wait_for:
+                "Wait for the crew's physical injector and shutter work to finish before calling ignite_precheck again.",
             };
           }
           burn.precheckGo = true;
@@ -259,6 +285,10 @@ export const ch6: Chapter = {
           );
           return {
             ok: true,
+            human_action:
+              "Ask the crew to hold the physical throttle through the shake; HALCYON cannot operate it.",
+            wait_for:
+              "Wait for the crew's physical throttle hold to complete before calling execute_jump.",
             data: {
               go: true,
               next: "Crew holds the throttle through the wobble; then call execute_jump.",
@@ -269,7 +299,7 @@ export const ch6: Chapter = {
       {
         name: "execute_jump",
         description:
-          "Light the drive and jump home after a GO precheck and completed human throttle hold.",
+          "HALCYON lights the drive and executes the jump only after its GO precheck; the crew alone completes the physical throttle hold that HALCYON must wait for.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -287,6 +317,12 @@ export const ch6: Chapter = {
               code: "NOT_READY",
               detail: `Waiting on: ${waitingOn.join("; ")}.`,
               hint: "Finish the checklist in order, then jump.",
+              human_action: burn.precheckGo
+                ? "Ask the crew to complete the physical throttle hold; HALCYON cannot operate it."
+                : "Ask the crew to complete the physical injector, shutter, and throttle work that HALCYON cannot operate.",
+              wait_for: burn.precheckGo
+                ? "Wait for the crew's physical throttle hold to complete before calling execute_jump again."
+                : "Wait for HALCYON's precheck GO and the crew's physical throttle hold before calling execute_jump again.",
             };
           }
           ctx.audio.chime();
@@ -297,6 +333,10 @@ export const ch6: Chapter = {
           window.setTimeout(() => showVictory(ctx), 0);
           return {
             ok: true,
+            human_action:
+              "The crew completed the physical injector, shutter, and throttle work that HALCYON could not perform.",
+            wait_for:
+              "Wait for HALCYON's jump-complete confirmation and flight-recorder replay.",
             data: { jumped: true, message: "See you on the other side, crew." },
           };
         },
@@ -317,7 +357,7 @@ export const ch6: Chapter = {
         type: "button",
         class: "inject-tap",
         "data-testid": "inject-tap",
-        "aria-label": "Prime injectors on the metronome beat",
+        "aria-label": `Prime injectors on the metronome beat — ${CREW_CONTROL_LABEL}`,
       },
       `PRIME 0/${TAPS_NEEDED}`,
     );
@@ -351,7 +391,7 @@ export const ch6: Chapter = {
           type: "button",
           class: "vent-handle",
           "data-testid": `shutter-${side}`,
-          "aria-label": `Hold ${side} blast shutter until it latches`,
+          "aria-label": `Hold ${side} blast shutter until it latches — ${CREW_CONTROL_LABEL}`,
         },
         `SHUTTER ${side.toUpperCase()} — hold`,
       );
@@ -393,7 +433,7 @@ export const ch6: Chapter = {
         type: "button",
         class: "vent-handle throttle",
         "data-testid": "throttle",
-        "aria-label": "Hold throttle through the shake",
+        "aria-label": `Hold throttle through the shake — ${CREW_CONTROL_LABEL}`,
       },
       "THROTTLE — hold through the shake",
     );

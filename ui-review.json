@@ -200,13 +200,8 @@
         "settled_selector": "[data-testid=inject-tap]"
       },
       "covers": {
-        "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch6_burn.ts",
-          "src/game/chapters/index.ts",
-          "src/game/timings.ts",
-          "src/styles.css"
-        ],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
     }
