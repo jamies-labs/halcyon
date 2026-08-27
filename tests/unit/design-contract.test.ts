@@ -10,6 +10,19 @@ const reviewFiles = import.meta.glob<string>("/ui-review.json", {
   import: "default",
   query: "?raw",
 });
+const appFiles = import.meta.glob<string>("/src/main.ts", {
+  eager: true,
+  import: "default",
+  query: "?raw",
+});
+const playwrightConfigFiles = import.meta.glob<string>(
+  "/playwright.config.ts",
+  {
+    eager: true,
+    import: "default",
+    query: "?raw",
+  },
+);
 
 describe("design contract activation", () => {
   it("publishes an active, complete contract with the canonical token source", () => {
@@ -142,6 +155,26 @@ describe("design contract activation", () => {
     ]);
     expect(opened?.setup?.settled_selector).toBe(
       "[data-testid=recorder-panel]",
+    );
+  });
+
+  it("wires the live shell and E2E touch context required by the recorder dock", () => {
+    const app = appFiles["/src/main.ts"];
+    const playwrightConfig = playwrightConfigFiles["/playwright.config.ts"];
+
+    expect(
+      app,
+      "src/main.ts must be available to the contract test",
+    ).toBeTypeOf("string");
+    expect(
+      app,
+      "the app root must carry the shell class used by the live recorder dock selectors",
+    ).toContain('app.classList.add("shell")');
+    expect(
+      playwrightConfig,
+      "Playwright must provide touchscreen support for the recorder touch path",
+    ).toMatch(
+      /use:\s*\{\s*baseURL:\s*"http:\/\/localhost:4173",\s*hasTouch:\s*true\s*\}/,
     );
   });
 

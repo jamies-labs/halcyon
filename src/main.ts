@@ -22,6 +22,7 @@ import type { ChapterId } from "./webmcp/types";
 const params = new URLSearchParams(location.search);
 const simulatorSession = isSimulatorSession(location.search);
 const app = document.querySelector<HTMLDivElement>("#app")!;
+app.classList.add("shell");
 const store = new Store(initialState());
 if (!simulatorSession) {
   const saved = loadSave();
