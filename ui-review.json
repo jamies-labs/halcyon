@@ -237,6 +237,79 @@
         "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "recorder-live-tools",
+      "viewports": [375, 768, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=recorder-toggle]",
+      "setup": {
+        "local_storage": {
+          "halcyon.save.v1": "{\"chapter\":4,\"chapterDone\":{\"1\":true,\"2\":true,\"3\":true,\"4\":false,\"5\":false,\"6\":false}}"
+        },
+        "interactions": [
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=recorder-toggle]"
+          }
+        ],
+        "settled_selector": "[data-testid=recorder-panel]"
+      },
+      "covers": {
+        "requirementKeys": ["AC0", "AC3", "AC4"],
+        "changedPaths": [
+          "src/main.ts",
+          "src/ui/outcome.ts",
+          "src/ui/recorder.ts",
+          "src/webmcp/registry.ts"
+        ],
+        "triggerOnlyPaths": []
+      }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "recorder-failure-retry",
+      "viewports": [375, 768, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=recorder-toggle]",
+      "setup": {
+        "interactions": [
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=recorder-toggle]"
+          },
+          {
+            "action": "fill",
+            "selector": "[data-testid=sim-args]",
+            "value": "{\"unexpected\":true}"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=sim-invoke]"
+          }
+        ],
+        "settled_selector": "[data-testid=recorder-log]"
+      },
+      "covers": {
+        "requirementKeys": ["AC1", "AC2"],
+        "changedPaths": [
+          "src/ui/outcome.ts",
+          "src/ui/recorder.ts",
+          "src/ui/speaker.ts"
+        ],
+        "triggerOnlyPaths": []
+      }
     }
   ]
 }

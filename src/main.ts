@@ -32,7 +32,6 @@ if (!simulatorSession) {
 
 const recorder = new Recorder();
 const host = detectModelContext();
-const registry = new ToolRegistry(host, (record) => recorder.record(record));
 const audio = new AudioEngine();
 const titles: Record<ChapterId, string> = {
   1: "Contact",
@@ -57,6 +56,10 @@ const speakerRoot = el("section", {
 });
 app.replaceChildren(header, stage, speakerRoot);
 const speaker = new Speaker(speakerRoot);
+const registry = new ToolRegistry(host, (record) => {
+  recorder.record(record);
+  speaker.record(record);
+});
 mountRecorderPanel(recorder, registry, app);
 mountChapterSelect(header, store, titles, simulatorSession);
 
