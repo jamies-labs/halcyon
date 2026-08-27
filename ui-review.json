@@ -53,6 +53,19 @@
     {
       "route": "/",
       "state": "resolved",
+      "variant": "recorder-closed",
+      "viewports": [375, 768, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=recorder-toggle]",
+      "covers": {
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
+        "triggerOnlyPaths": []
+      }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
       "variant": "recorder-open",
       "viewports": [375, 768, 1280],
       "theme": "light",
