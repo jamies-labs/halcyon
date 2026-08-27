@@ -55,7 +55,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL in an agent-capable browser for the full cooperative experience. For repeatable demonstrations, use `?fast=1&sim=1&ch=N`: `fast=1` shortens gameplay timings, `sim=1` activates the crew simulator, and replace `N` with any chapter from `1` through `6`. Simulator sessions seed only their own training state and do not overwrite campaign progress.
+Open the Vite URL in an agent-capable browser for the full cooperative experience. For repeatable demonstrations, use `?fast=1&sim=1&ch=N`: `fast=1` shortens gameplay timings, `sim=1` activates the crew simulator, and replace `N` with any chapter from `1` through `6`. To demonstrate the simulator without shortened timings, use `?sim=1&ch=N`. The default campaign progression is sequential; simulator sessions do not alter saved campaign progress.
 
 The project checks type safety, focused units, a production build, and Playwright flows in CI. Useful local commands are:
 
