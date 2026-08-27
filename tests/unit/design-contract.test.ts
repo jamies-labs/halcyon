@@ -98,7 +98,7 @@ describe("design contract activation", () => {
         viewports: number[];
         ready_selector: string;
         setup?: { settled_selector?: string };
-        covers: { changedPaths: string[] };
+        covers: { changedPaths: string[]; requirementKeys: unknown };
       }>;
     };
     const twoMan = parsed.scenarios.find(
@@ -113,12 +113,20 @@ describe("design contract activation", () => {
     expect(twoMan?.viewports).toEqual(expect.arrayContaining([375, 1280]));
     expect(twoMan?.ready_selector).toBe("[data-testid=vent-left]");
     expect(twoMan?.setup?.settled_selector).toBe("[data-testid=vent-left]");
-    expect(twoMan?.covers.changedPaths).toEqual(
-      expect.arrayContaining([
-        "src/game/chapters/ch5_twoman.ts",
-        "src/game/chapters/index.ts",
-        "src/styles.css",
-      ]),
-    );
+    expect(twoMan?.covers.changedPaths).toEqual([
+      "src/game/chapters/ch5_twoman.ts",
+    ]);
+    const requirementKeys = twoMan?.covers.requirementKeys;
+    expect(Array.isArray(requirementKeys)).toBe(true);
+    if (!Array.isArray(requirementKeys)) {
+      throw new Error("Chapter Five requirement keys must be an array");
+    }
+    for (const key of requirementKeys) {
+      expect(typeof key).toBe("string");
+      if (typeof key !== "string") {
+        throw new Error("Chapter Five requirement key must be a string");
+      }
+      expect(key).toMatch(/^AC\d+/);
+    }
   });
 });

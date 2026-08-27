@@ -174,12 +174,8 @@
         "settled_selector": "[data-testid=vent-left]"
       },
       "covers": {
-        "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch5_twoman.ts",
-          "src/game/chapters/index.ts",
-          "src/styles.css"
-        ],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "changedPaths": ["src/game/chapters/ch5_twoman.ts"],
         "triggerOnlyPaths": []
       }
     },

@@ -11,7 +11,10 @@ type Invocation = {
   outcome: {
     ok: boolean;
     code?: string;
+    detail?: string;
     data?: Gauge | { armed_for_ms: number; next: string };
+    human_action?: unknown;
+    wait_for?: unknown;
   };
 };
 
@@ -114,20 +117,86 @@ test("Two-Man Rule registers the read gauge with the real read-only host annotat
   expect(stageText).not.toContain("safe band");
 });
 
-test("arming outside the band coaches PRESSURE_OUT_OF_BAND and inside opens the configured window", async ({
+test("Two-Man Rule tool descriptions declare the agent and crew roles", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const registered: Array<{ name: string; description: string }> = [];
+    Object.defineProperty(window, "__twoManToolDescriptions", {
+      configurable: true,
+      value: registered,
+    });
+    Object.defineProperty(document, "modelContext", {
+      configurable: true,
+      value: {
+        registerTool(tool: { name: string; description: string }) {
+          registered.push({ name: tool.name, description: tool.description });
+          return { unregister() {} };
+        },
+      },
+    });
+  });
+  await page.goto("/?fast=1&sim=1&ch=5");
+
+  const descriptions = await page.evaluate(
+    () =>
+      (
+        window as typeof window & {
+          __twoManToolDescriptions: Array<{
+            name: string;
+            description: string;
+          }>;
+        }
+      ).__twoManToolDescriptions,
+  );
+
+  expect(
+    descriptions.find(({ name }) => name === "read_gauge")?.description,
+  ).toBe(
+    "HALCYON reads the drive pressure timing and polls the gauge; the crew alone holds both physical vent handles simultaneously when HALCYON arms the purge.",
+  );
+  expect(
+    descriptions.find(({ name }) => name === "arm_purge")?.description,
+  ).toBe(
+    "HALCYON arms the drive purge only inside the safe pressure band; after arming, it must ask the crew to hold BOTH physical vent handles simultaneously. HALCYON times and arms; the crew supplies the hands.",
+  );
+});
+
+test("arm purge returns crew handoff fields inside and outside the pressure band", async ({
   page,
 }) => {
   const outside = await coachWhenUnsafe(page);
   expect(outside.outcome.code).toBe("PRESSURE_OUT_OF_BAND");
+  for (const [label, response] of [
+    ["outside the pressure band", outside],
+    ["inside the pressure band", await armWhenSafe(page)],
+  ] as const) {
+    expect(
+      typeof response.outcome.human_action,
+      `${label} response must name the crew action`,
+    ).toBe("string");
+    expect(
+      (response.outcome.human_action as string).trim().length,
+      `${label} human_action must be non-empty`,
+    ).toBeGreaterThan(0);
+    expect(
+      typeof response.outcome.wait_for,
+      `${label} response must name the observable wait condition`,
+    ).toBe("string");
+    expect(
+      (response.outcome.wait_for as string).trim().length,
+      `${label} wait_for must be non-empty`,
+    ).toBeGreaterThan(0);
+  }
 
   const inside = await armWhenSafe(page);
-  expect(inside.outcome).toEqual({
-    ok: true,
-    data: {
-      armed_for_ms: 4_000,
-      next: "Crew must hold both handles simultaneously until the purge completes.",
-    },
+  expect(inside.outcome.data).toEqual({
+    armed_for_ms: 4_000,
+    next: "Crew must hold both handles simultaneously until the purge completes.",
   });
+  expect(inside.outcome.wait_for).toBe(
+    "Wait for purge or arm-window expiry; poll read_gauge until purged is true or armed is false.",
+  );
   expect((await gauge(page)).armed).toBe(true);
 });
 
@@ -204,14 +273,17 @@ test("one handle alone never purges; both handles inside the armed window do", a
   }
 });
 
-test("Two-Man Rule renders the accessible physical vent controls", async ({
+test("Two-Man Rule keeps crew-only labels and dual-channel containment", async ({
   page,
 }) => {
   await expect(page.getByTestId("vent-left")).toBeVisible();
   await expect(page.getByTestId("vent-right")).toBeVisible();
   await expect(page.getByTestId("hold-ring")).toBeVisible();
   await expect(page.getByTestId("vent-left")).toHaveAccessibleName(
-    "Hold vent A with the pointer",
+    "physical control, crew hands only; HALCYON must ask the crew, not operate it",
+  );
+  await expect(page.getByTestId("vent-right")).toHaveAccessibleName(
+    "physical control, crew hands only; HALCYON must ask the crew, not operate it",
   );
   await expect(page.getByTestId("vent-left")).toContainText("pointer");
   await expect(page.getByTestId("vent-right")).toContainText("SPACE");
@@ -221,6 +293,60 @@ test("Two-Man Rule renders the accessible physical vent controls", async ({
       .getByTestId("vent-left")
       .evaluate((control) => getComputedStyle(control).outlineStyle),
   ).toBe("solid");
+});
+
+test("Two-Man Rule broadcast and review scenario preserve cooperative evidence", async ({
+  page,
+}) => {
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "HALCYON reads the pressure timing and arms the purge; crew holds both physical vent handles simultaneously.",
+  );
+
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "HALCYON has armed the purge; crew must hold both vent handles now. I time the window; you supply the hands.",
+  );
+
+  const response = await page.request.get("/ui-review.json");
+  expect(
+    response.ok(),
+    "the review manifest must be served to its runner",
+  ).toBe(true);
+  const manifest = (await response.json()) as {
+    scenarios: Array<{
+      route: string;
+      state: string;
+      variant?: string;
+      viewports: number[];
+      theme?: string;
+      ready_selector: string;
+      covers: { changedPaths: string[]; requirementKeys: unknown };
+    }>;
+  };
+  const scenario = manifest.scenarios.find(
+    ({ variant }) => variant === "chapter-five-two-man",
+  );
+
+  expect(scenario?.route).toBe("/");
+  expect(scenario?.state).toBe("resolved");
+  expect(scenario?.viewports).toEqual([375, 1280]);
+  expect(scenario?.theme).toBe("light");
+  expect(scenario?.ready_selector).toBe("[data-testid=vent-left]");
+  expect(scenario?.covers.changedPaths).toEqual([
+    "src/game/chapters/ch5_twoman.ts",
+  ]);
+  const requirementKeys = scenario?.covers.requirementKeys;
+  expect(Array.isArray(requirementKeys)).toBe(true);
+  if (!Array.isArray(requirementKeys)) {
+    throw new Error("Chapter Five requirement keys must be an array");
+  }
+  for (const key of requirementKeys) {
+    expect(typeof key).toBe("string");
+    if (typeof key !== "string") {
+      throw new Error("Chapter Five requirement key must be a string");
+    }
+    expect(key).toMatch(/^AC\d+/);
+  }
 });
 
 test("the armed window expires and read_gauge reports armed false", async ({

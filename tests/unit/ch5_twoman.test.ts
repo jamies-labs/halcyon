@@ -13,6 +13,7 @@ type Listener = (event: Event) => void;
 class FakeElement {
   readonly children: FakeElement[] = [];
   readonly listeners = new Map<string, Listener[]>();
+  readonly attributes = new Map<string, string>();
   readonly classList = { toggle: vi.fn() };
   readonly style = { setProperty: vi.fn() };
 
@@ -20,7 +21,9 @@ class FakeElement {
     this.children.push(...children);
   }
 
-  setAttribute(): void {}
+  setAttribute(name: string, value: string): void {
+    this.attributes.set(name, value);
+  }
 
   setPointerCapture(): void {}
 
@@ -77,6 +80,80 @@ describe("Chapter 5 Two-Man Rule", () => {
       initialState().flags["drive.purged"],
       "a lone handle must leave the observable purge state false, not unset",
     ).toBe(false);
+  });
+
+  it("declares the Two-Man Rule agent and crew handoff across tools, vents, and broadcast", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {
+        createElement: () => new FakeElement(),
+        createTextNode: () => new FakeElement(),
+      },
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        setInterval: globalThis.setInterval.bind(globalThis),
+        clearInterval: globalThis.clearInterval.bind(globalThis),
+        setTimeout: globalThis.setTimeout.bind(globalThis),
+        clearTimeout: globalThis.clearTimeout.bind(globalThis),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    });
+
+    const stage = new FakeElement();
+    const context = chapterContext(stage as unknown as HTMLElement);
+    const chapter = CHAPTERS[5]!;
+    chapter.mount(context);
+    const tools = chapter.tools(context);
+    const read = tools.find((tool) => tool.name === "read_gauge")!;
+    const arm = tools.find((tool) => tool.name === "arm_purge")!;
+    const crewOnlyLabel =
+      "physical control, crew hands only; HALCYON must ask the crew, not operate it";
+
+    expect(read.description).toBe(
+      "HALCYON reads the drive pressure timing and polls the gauge; the crew alone holds both physical vent handles simultaneously when HALCYON arms the purge.",
+    );
+    expect(arm.description).toBe(
+      "HALCYON arms the drive purge only inside the safe pressure band; after arming, it must ask the crew to hold BOTH physical vent handles simultaneously. HALCYON times and arms; the crew supplies the hands.",
+    );
+
+    vi.setSystemTime(3_000);
+    const outside = await arm.execute({});
+    expect(outside).toMatchObject({
+      ok: false,
+      code: "PRESSURE_OUT_OF_BAND",
+      human_action:
+        "Ask the crew to keep both physical vent handles ready, then hold them simultaneously only after HALCYON arms the purge.",
+      wait_for:
+        "Wait for read_gauge to report pressure inside the safe band before calling arm_purge again.",
+    });
+
+    // 7 seconds is safely within the 30–55 band; the mathematical upper
+    // boundary at 6 seconds rounds above 55 in JavaScript floating point.
+    vi.setSystemTime(7_000);
+    const inside = await arm.execute({});
+    expect(inside).toMatchObject({
+      ok: true,
+      human_action:
+        "Ask the crew to hold both physical vent handles simultaneously: pointer on VENT A and Space on VENT B.",
+      wait_for:
+        "Wait for purge or arm-window expiry; poll read_gauge until purged is true or armed is false.",
+    });
+    expect(context.speaker.say).toHaveBeenLastCalledWith(
+      "HALCYON has armed the purge; crew must hold both vent handles now. I time the window; you supply the hands.",
+      "urgent",
+    );
+
+    const left = stage.children[1]?.children[0];
+    const right = stage.children[1]?.children[2];
+    expect(left?.attributes.get("aria-label")).toBe(crewOnlyLabel);
+    expect(right?.attributes.get("aria-label")).toBe(crewOnlyLabel);
+    chapter.unmount();
   });
 
   it("requires a fresh full hold after every successful arm", async () => {
