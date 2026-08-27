@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as campaign from "../../src/game/store";
 import { Store, initialState } from "../../src/game/store";
 import { bindAutosave, loadSave } from "../../src/game/save";
 
@@ -102,6 +103,40 @@ describe("timings", () => {
 });
 
 describe("save", () => {
+  it("simulator session is explicit and never persists campaign progress", () => {
+    const values = new Map<string, string>([
+      [
+        "halcyon.save.v1",
+        '{"chapter":3,"chapterDone":{"1":true,"2":true,"3":false,"4":false,"5":false,"6":false}}',
+      ],
+    ]);
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    });
+
+    const isSimulatorSession = (
+      campaign as typeof campaign & {
+        isSimulatorSession?: (search: string) => boolean;
+      }
+    ).isSimulatorSession;
+    expect(isSimulatorSession?.("")).toBe(false);
+    expect(isSimulatorSession?.("?sim=0&ch=6")).toBe(false);
+    expect(isSimulatorSession?.("?sim=1&ch=6")).toBe(true);
+
+    const store = new Store(initialState());
+    bindAutosave(store, false);
+    store.update((state) => {
+      state.chapter = 6;
+      state.chapterDone[5] = true;
+      state.flags["drive.purged"] = true;
+    });
+
+    expect(values.get("halcyon.save.v1")).toBe(
+      '{"chapter":3,"chapterDone":{"1":true,"2":true,"3":false,"4":false,"5":false,"6":false}}',
+    );
+  });
+
   it("loads a valid save and autosaves only chapter progress", () => {
     const values = new Map<string, string>();
     vi.stubGlobal("localStorage", {
@@ -113,6 +148,7 @@ describe("save", () => {
 
     store.update((state) => {
       state.chapter = 4;
+      state.campaignChapter = 4;
       state.chapterDone = { ...chapterDone };
       state.booted = true;
       state.power.drive = 14;

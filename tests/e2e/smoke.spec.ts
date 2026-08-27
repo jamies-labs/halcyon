@@ -43,6 +43,109 @@ test("sim mode auto-starts and exposes chapter one via halcyonSim", async ({
   await expect(page.getByTestId("breaker-handle")).toBeVisible();
 });
 
+test("default campaign ignores forward ch parameter", async ({ page }) => {
+  await page.goto("/?fast=1&ch=6");
+
+  await expect(page.getByTestId("chapter-select")).toHaveAttribute(
+    "aria-label",
+    "Campaign chapter selector",
+  );
+  const state = await page.evaluate(() => window.halcyonSim.getState());
+  expect(state.chapter).toBe(1);
+  expect(state.booted).toBe(false);
+  expect(state.chapterDone).toEqual({
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+    6: false,
+  });
+  expect(state.flags["drive.purged"]).toBe(false);
+  await expect(page.getByTestId("goto-ch6")).toBeDisabled();
+
+  await page.evaluate(() => window.halcyonSim.goto(6));
+  expect(await page.evaluate(() => window.halcyonSim.getState())).toMatchObject(
+    {
+      chapter: 1,
+      booted: false,
+      flags: { "drive.purged": false },
+    },
+  );
+});
+
+test("campaign selector revisits only saved progress", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "halcyon.save.v1",
+      JSON.stringify({
+        chapter: 3,
+        chapterDone: {
+          1: true,
+          2: true,
+          3: false,
+          4: false,
+          5: false,
+          6: false,
+        },
+      }),
+    );
+  });
+  await page.goto("/?fast=1");
+
+  const before = await page.evaluate(() => window.halcyonSim.getState());
+  for (const chapter of [1, 2, 3]) {
+    await expect(page.getByTestId(`goto-ch${chapter}`)).toBeEnabled();
+    await page.getByTestId(`goto-ch${chapter}`).click();
+    expect(
+      await page.evaluate(() => window.halcyonSim.getState().chapter),
+    ).toBe(chapter);
+  }
+  await expect(page.getByTestId("goto-ch4")).toBeDisabled();
+  await page.getByTestId("goto-ch4").click({ force: true });
+
+  const after = await page.evaluate(() => window.halcyonSim.getState());
+  expect(after.chapter).toBe(3);
+  expect(after.power).toEqual(before.power);
+  expect(after.flags).toEqual(before.flags);
+});
+
+test("simulator seeding is ephemeral", async ({ page }) => {
+  const savedCampaign =
+    '{"chapter":3,"chapterDone":{"1":true,"2":true,"3":false,"4":false,"5":false,"6":false}}';
+  await page.addInitScript((save) => {
+    localStorage.setItem("halcyon.save.v1", save);
+  }, savedCampaign);
+  await page.goto("/?fast=1&sim=1");
+  await expect(page.getByTestId("simulator-session")).toContainText(
+    "TRAINING SIMULATION",
+  );
+  expect(await page.evaluate(() => window.halcyonSim.getState())).toMatchObject(
+    {
+      chapter: 1,
+      booted: false,
+      flags: { "drive.purged": false },
+    },
+  );
+  expect(
+    await page.evaluate(() => localStorage.getItem("halcyon.save.v1")),
+  ).toBe(savedCampaign);
+
+  await page.goto("/?fast=1&sim=1&ch=6");
+
+  const seeded = await page.evaluate(() => window.halcyonSim.getState());
+  expect(seeded).toMatchObject({
+    chapter: 6,
+    booted: true,
+    chapterDone: { 1: true, 2: true, 3: true, 4: true, 5: true },
+    flags: { "drive.purged": true },
+  });
+  await page.evaluate(() => window.halcyonSim.goto(6));
+  expect(
+    await page.evaluate(() => localStorage.getItem("halcyon.save.v1")),
+  ).toBe(savedCampaign);
+});
+
 test("seeded chapter jump registers global tools and delivers broadcasts", async ({
   page,
 }) => {

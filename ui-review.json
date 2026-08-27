@@ -204,6 +204,26 @@
         "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "campaign-selector",
+      "viewports": [375, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=chapter-select]",
+      "covers": {
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "changedPaths": [
+          "src/main.ts",
+          "src/game/store.ts",
+          "src/game/save.ts",
+          "src/game/chapters/types.ts",
+          "src/ui/chapterSelect.ts",
+          "src/styles.css"
+        ],
+        "triggerOnlyPaths": []
+      }
     }
   ]
 }

@@ -3,10 +3,14 @@ import { AudioEngine } from "./audio/engine";
 import { CHAPTERS } from "./game/chapters";
 import type { Chapter, ChapterCtx } from "./game/chapters/types";
 import { globalTools } from "./game/globalTools";
-import { bindAutosave, loadSave } from "./game/save";
-import { initialState, Store } from "./game/store";
+import { bindAutosave, loadSave, restoreCampaign } from "./game/save";
+import { initialState, isSimulatorSession, Store } from "./game/store";
 import { T } from "./game/timings";
-import { seedForChapter, mountChapterSelect } from "./ui/chapterSelect";
+import {
+  seedForChapter,
+  mountChapterSelect,
+  selectChapter,
+} from "./ui/chapterSelect";
 import { el } from "./ui/dom";
 import { mountGate } from "./ui/gate";
 import { mountRecorderPanel, Recorder } from "./ui/recorder";
@@ -16,16 +20,14 @@ import { detectModelContext } from "./webmcp/shim";
 import type { ChapterId } from "./webmcp/types";
 
 const params = new URLSearchParams(location.search);
+const simulatorSession = isSimulatorSession(location.search);
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const store = new Store(initialState());
-const saved = loadSave();
-if (saved && !params.has("ch")) {
-  seedForChapter(store, saved.chapter);
-  store.update((state) => {
-    state.chapterDone = saved.chapterDone;
-  });
+if (!simulatorSession) {
+  const saved = loadSave();
+  if (saved) restoreCampaign(store, saved);
+  bindAutosave(store);
 }
-bindAutosave(store);
 
 const recorder = new Recorder();
 const host = detectModelContext();
@@ -55,11 +57,12 @@ const speakerRoot = el("section", {
 app.replaceChildren(header, stage, speakerRoot);
 const speaker = new Speaker(speakerRoot);
 mountRecorderPanel(recorder, registry, app);
-mountChapterSelect(header, store, titles);
+mountChapterSelect(header, store, titles, simulatorSession);
 
 let mounted: Chapter | null = null;
 function contextFor(chapter: Chapter): ChapterCtx {
   return {
+    isSimulatorSession: simulatorSession,
     store,
     registry,
     audio,
@@ -74,7 +77,11 @@ function contextFor(chapter: Chapter): ChapterCtx {
       if (chapter.id < 6) {
         setTimeout(() => {
           store.update((state) => {
-            state.chapter = (chapter.id + 1) as ChapterId;
+            const nextChapter = (chapter.id + 1) as ChapterId;
+            state.chapter = nextChapter;
+            if (state.campaignChapter < nextChapter) {
+              state.campaignChapter = nextChapter;
+            }
           });
         }, T.advanceDelayMs);
       }
@@ -122,13 +129,14 @@ store.subscribe((state) => {
 });
 
 const requestedChapter = Number(params.get("ch")) as ChapterId;
-if (requestedChapter >= 1 && requestedChapter <= 6) {
+if (simulatorSession && requestedChapter >= 1 && requestedChapter <= 6) {
   seedForChapter(store, requestedChapter);
 } else {
-  store.update(() => {});
+  lastChapter = store.get().chapter;
+  mountChapter(lastChapter);
 }
 
-if (params.has("sim")) {
+if (simulatorSession) {
   audio.ensureRunning();
 } else {
   mountGate(app, host !== null, () => {
@@ -145,7 +153,7 @@ window.halcyonSim = {
     registry.invoke(name, args ?? {}, "sim"),
   listTools: () => registry.listTools().map((tool) => tool.name),
   getState: () => store.get(),
-  goto: (chapter: ChapterId) => seedForChapter(store, chapter),
+  goto: (chapter: ChapterId) => selectChapter(store, chapter, simulatorSession),
 };
 
 declare global {

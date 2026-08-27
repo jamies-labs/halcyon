@@ -10,6 +10,7 @@ import type { Speaker } from "../../src/ui/speaker";
 
 function chapterContext(): ChapterCtx {
   return {
+    isSimulatorSession: false,
     store: new Store(initialState()),
     registry: new ToolRegistry(null, vi.fn()),
     audio: { alarm: vi.fn(), click: vi.fn() } as unknown as AudioEngine,
