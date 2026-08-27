@@ -5,7 +5,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   use: { baseURL: "http://localhost:4173" },
   webServer: {
-    command: "npm run preview:e2e",
+    command: 'npm run preview:e2e',
     port: 4173,
     reuseExistingServer: !process.env.CI,
   },
