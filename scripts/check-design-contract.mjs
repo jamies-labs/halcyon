@@ -58,6 +58,31 @@ for (const token of [
 if (/#|\brgb\(|\bhsl\(|border-radius:\s*\d/.test(dishStyles))
   fail("Antenna dish styles must not introduce raw color or radius values");
 
+const recorderStart = tokens.indexOf(".recorder-dock");
+if (recorderStart === -1)
+  fail(
+    "Flight recorder must use a docked region in the canonical token source",
+  );
+const recorderStyles = tokens.slice(recorderStart);
+for (const token of [
+  "var(--color-surface)",
+  "var(--color-border)",
+  "var(--radius-surface)",
+]) {
+  if (!recorderStyles.includes(token))
+    fail(`Flight recorder docking must use ${token}`);
+}
+if (recorderStyles.includes("position: fixed"))
+  fail("Flight recorder docking must not use a fixed overlay");
+if (
+  !tokens.includes(".recorder-close:focus-visible") ||
+  !tokens.includes("var(--focus-width)")
+) {
+  fail(
+    "Flight recorder close control must reuse the canonical focus treatment",
+  );
+}
+
 for (const field of ["shell_files", "component_roots"]) {
   for (const path of listFromMarker(marker, field)) readProjectFile(path);
 }

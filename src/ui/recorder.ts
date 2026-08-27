@@ -98,14 +98,30 @@ export function mountRecorderPanel(
     }
     void registry.invoke(select.value, parsed, "sim");
   });
+  const close = el(
+    "button",
+    {
+      class: "recorder-close",
+      type: "button",
+      "data-testid": "recorder-close",
+    },
+    "Close flight recorder",
+  );
   const panel = el(
     "aside",
     {
       class: "recorder-panel hidden",
       "data-testid": "recorder-panel",
       "aria-label": "Flight recorder and crew simulator",
+      "aria-hidden": "true",
+      hidden: "",
     },
-    el("h2", { class: "rec-title" }, "Flight recorder / crew simulator"),
+    el(
+      "div",
+      { class: "recorder-heading" },
+      el("h2", { class: "rec-title" }, "Flight recorder / crew simulator"),
+      close,
+    ),
     log,
     el("div", { class: "sim-form" }, select, args, invokeButton),
   );
@@ -122,10 +138,30 @@ export function mountRecorderPanel(
     "Open flight recorder",
   );
   panel.id = "recorder-panel";
+  const setOpen = (open: boolean): void => {
+    panel.hidden = !open;
+    panel.classList.toggle("hidden", !open);
+    panel.setAttribute("aria-hidden", String(!open));
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.textContent = open
+      ? "Close flight recorder"
+      : "Open flight recorder";
+    if (open) refresh();
+  };
   toggle.addEventListener("click", () => {
-    const isHidden = panel.classList.toggle("hidden");
-    toggle.setAttribute("aria-expanded", String(!isHidden));
-    if (!isHidden) refresh();
+    const open = panel.hidden;
+    setOpen(open);
+    if (!open) toggle.focus();
   });
-  container.append(toggle, panel);
+  close.addEventListener("click", () => {
+    setOpen(false);
+    toggle.focus();
+  });
+  const dock = el(
+    "section",
+    { class: "recorder-dock", "aria-label": "Flight recorder controls" },
+    toggle,
+    panel,
+  );
+  container.insertBefore(dock, container.querySelector(".stage"));
 }
