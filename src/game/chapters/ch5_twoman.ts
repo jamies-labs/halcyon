@@ -56,7 +56,7 @@ export const ch5: Chapter = {
       {
         name: "read_gauge",
         description:
-          "Read the drive pressure gauge. The purge only arms inside the safe band, and the band comes and goes with the pressure swing. Poll this to time your arm call.",
+          "HALCYON reads the drive pressure timing and polls the gauge; the crew alone holds both physical vent handles simultaneously when HALCYON arms the purge.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -65,6 +65,10 @@ export const ch5: Chapter = {
         readOnly: true,
         execute: () => ({
           ok: true,
+          human_action:
+            "The crew holds both physical vent handles simultaneously only after HALCYON arms the purge.",
+          wait_for:
+            "Poll read_gauge for an armed purge, a completed purge, or arm-window expiry.",
           data: {
             pressure: Number(pressure().toFixed(1)),
             safe_band: [...SAFE_BAND],
@@ -76,7 +80,7 @@ export const ch5: Chapter = {
       {
         name: "arm_purge",
         description:
-          "Arm the drive purge. Requires pressure inside the safe band. Arming opens a short window in which the crew must hold BOTH vent handles at the same time — a two-man rule. You time the arm; they supply the hands.",
+          "HALCYON arms the drive purge only inside the safe pressure band; after arming, it must ask the crew to hold BOTH physical vent handles simultaneously. HALCYON times and arms; the crew supplies the hands.",
         inputSchema: {
           type: "object",
           additionalProperties: false,
@@ -90,6 +94,10 @@ export const ch5: Chapter = {
               code: "PRESSURE_OUT_OF_BAND",
               detail: `Pressure is ${value.toFixed(1)}; the safe band is ${SAFE_BAND[0]}–${SAFE_BAND[1]}.`,
               hint: "Poll read_gauge and call arm_purge the moment the pressure enters the band. Warn your crew first so their hands are ready.",
+              human_action:
+                "Ask the crew to keep both physical vent handles ready, then hold them simultaneously only after HALCYON arms the purge.",
+              wait_for:
+                "Wait for read_gauge to report pressure inside the safe band before calling arm_purge again.",
             };
           }
 
@@ -98,7 +106,7 @@ export const ch5: Chapter = {
           const generation = ++armGeneration;
           ctx.audio.alarm();
           ctx.speaker.say(
-            "ARMED. Both vent handles, crew — NOW. Hold until the ring closes.",
+            "HALCYON has armed the purge; crew must hold both vent handles now. I time the window; you supply the hands.",
             "urgent",
           );
           ctx.recorder.addHuman("purge armed — two-man window open");
@@ -116,6 +124,10 @@ export const ch5: Chapter = {
 
           return {
             ok: true,
+            human_action:
+              "Ask the crew to hold both physical vent handles simultaneously: pointer on VENT A and Space on VENT B.",
+            wait_for:
+              "Wait for purge or arm-window expiry; poll read_gauge until purged is true or armed is false.",
             data: {
               armed_for_ms: T.armWindowMs,
               next: "Crew must hold both handles simultaneously until the purge completes.",
@@ -141,7 +153,8 @@ export const ch5: Chapter = {
         type: "button",
         class: "vent-handle",
         "data-testid": "vent-left",
-        "aria-label": "Hold vent A with the pointer",
+        "aria-label":
+          "physical control, crew hands only; HALCYON must ask the crew, not operate it",
       },
       "VENT A — hold (pointer)",
     );
@@ -150,7 +163,8 @@ export const ch5: Chapter = {
       {
         class: "vent-handle vent-key",
         "data-testid": "vent-right",
-        "aria-label": "Vent B input: hold Space",
+        "aria-label":
+          "physical control, crew hands only; HALCYON must ask the crew, not operate it",
         role: "status",
       },
       "VENT B — hold [SPACE]",
@@ -228,7 +242,7 @@ export const ch5: Chapter = {
       el("div", { class: "vent-row" }, left, ring, right),
     );
     ctx.speaker.say(
-      "This valve was designed for two humans. It gets a human and a ghost with perfect timing instead. Watch my call.",
+      "HALCYON reads the pressure timing and arms the purge; crew holds both physical vent handles simultaneously.",
       "dry",
     );
   },
