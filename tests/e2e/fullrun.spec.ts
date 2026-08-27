@@ -1,6 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
-type Invocation = { outcome: { ok: boolean; code?: string } };
+type Invocation = {
+  outcome: {
+    ok: boolean;
+    code?: string;
+    human_action?: unknown;
+    wait_for?: unknown;
+  };
+};
 
 const JUMP_VECTOR = { x: 0.42, y: -1.07, z: 3.14 };
 const MINIMUM_ROUTE = [
@@ -22,6 +29,25 @@ async function invoke(
   )) as Invocation;
 }
 
+function expectCrewHandoff(label: string, response: Invocation): void {
+  expect(
+    typeof response.outcome.human_action,
+    `${label} must name the crew action`,
+  ).toBe("string");
+  expect(
+    (response.outcome.human_action as string).trim().length,
+    `${label} human_action must be non-empty`,
+  ).toBeGreaterThan(0);
+  expect(
+    typeof response.outcome.wait_for,
+    `${label} must name the observable wait condition`,
+  ).toBe("string");
+  expect(
+    (response.outcome.wait_for as string).trim().length,
+    `${label} wait_for must be non-empty`,
+  ).toBeGreaterThan(0);
+}
+
 async function holdFor(
   page: Page,
   selector: string,
@@ -35,7 +61,7 @@ async function holdFor(
   await page.mouse.up();
 }
 
-async function boot(page: Page): Promise<void> {
+async function boot(page: Page): Promise<Invocation> {
   const handle = page.getByTestId("breaker-handle");
   const box = await handle.boundingBox();
   expect(box, "breaker handle must be available in Chapter 1").not.toBeNull();
@@ -48,23 +74,26 @@ async function boot(page: Page): Promise<void> {
     await page.waitForTimeout(60);
   }
   await page.mouse.up();
-  expect((await invoke(page, "boot_handshake")).outcome.ok).toBe(true);
+  const handshake = await invoke(page, "boot_handshake");
+  expect(handshake.outcome.ok).toBe(true);
   await expect
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(2);
+  return handshake;
 }
 
-async function triageManifest(page: Page): Promise<void> {
+async function triageManifest(page: Page): Promise<Invocation[]> {
+  const triage = [] as Invocation[];
   for (const sectionId of ["s2", "s4", "s5"]) {
+    const flagged = await invoke(page, "flag_section", {
+      section_id: sectionId,
+      priority: 1,
+    });
     expect(
-      (
-        await invoke(page, "flag_section", {
-          section_id: sectionId,
-          priority: 1,
-        })
-      ).outcome.ok,
+      flagged.outcome.ok,
       `${sectionId} must be triaged by the agent before crew acknowledgement`,
     ).toBe(true);
+    triage.push(flagged);
     await page.locator(`[data-section="${sectionId}"]`).click();
   }
   await expect
@@ -72,13 +101,14 @@ async function triageManifest(page: Page): Promise<void> {
       page.evaluate(() => window.halcyonSim.getState().chapterDone[2]),
     )
     .toBe(true);
+  return triage;
 }
 
-async function routePower(page: Page): Promise<void> {
-  expect(
-    (await invoke(page, "route_power", { allocations: MINIMUM_ROUTE })).outcome
-      .ok,
-  ).toBe(true);
+async function routePower(page: Page): Promise<Invocation> {
+  const routed = await invoke(page, "route_power", {
+    allocations: MINIMUM_ROUTE,
+  });
+  expect(routed.outcome.ok).toBe(true);
   for (const subsystem of [
     "life_support",
     "comms",
@@ -93,6 +123,7 @@ async function routePower(page: Page): Promise<void> {
       page.evaluate(() => window.halcyonSim.getState().chapterDone[3]),
     )
     .toBe(true);
+  return routed;
 }
 
 async function alignAndDecode(page: Page): Promise<void> {
@@ -128,18 +159,24 @@ async function alignAndDecode(page: Page): Promise<void> {
     .toBe(true);
 }
 
-async function purgeDrive(page: Page): Promise<void> {
+async function purgeDrive(page: Page): Promise<Invocation> {
+  let armed: Invocation | undefined;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const arm = await invoke(page, "arm_purge");
-    if (arm.outcome.ok) break;
+    if (arm.outcome.ok) {
+      armed = arm;
+      break;
+    }
     expect(arm.outcome.code, "arm_purge must only wait for pressure").toBe(
       "PRESSURE_OUT_OF_BAND",
     );
+    expectCrewHandoff(`arm_purge pressure wait ${attempt + 1}`, arm);
     await page.waitForTimeout(50);
     if (attempt === 99) {
       throw new Error("arm_purge never opened its configured pressure window");
     }
   }
+  if (!armed) throw new Error("arm_purge did not return an armed response");
   const box = await page.getByTestId("vent-left").boundingBox();
   expect(box, "left vent must be available in Chapter 5").not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -155,33 +192,37 @@ async function purgeDrive(page: Page): Promise<void> {
     await page.keyboard.up("Space");
     await page.mouse.up();
   }
+  return armed;
 }
 
-async function burnHome(page: Page): Promise<void> {
-  expect((await invoke(page, "set_jump_vector", JUMP_VECTOR)).outcome.ok).toBe(
-    true,
-  );
-  expect((await invoke(page, "pressurize_injectors")).outcome.ok).toBe(true);
+async function burnHome(page: Page): Promise<Invocation[]> {
+  const vector = await invoke(page, "set_jump_vector", JUMP_VECTOR);
+  expect(vector.outcome.ok).toBe(true);
+  const pressurize = await invoke(page, "pressurize_injectors");
+  expect(pressurize.outcome.ok).toBe(true);
   for (let tap = 0; tap < 4; tap += 1) {
     await page.getByTestId("inject-tap").click();
     await page.waitForTimeout(120);
   }
   await holdFor(page, "[data-testid=shutter-left]", 300);
   await holdFor(page, "[data-testid=shutter-right]", 300);
-  expect((await invoke(page, "ignite_precheck")).outcome.ok).toBe(true);
+  const precheck = await invoke(page, "ignite_precheck");
+  expect(precheck.outcome.ok).toBe(true);
   await holdFor(page, "[data-testid=throttle]", 1_400);
-  expect((await invoke(page, "execute_jump")).outcome.ok).toBe(true);
+  const jump = await invoke(page, "execute_jump");
+  expect(jump.outcome.ok).toBe(true);
+  return [vector, pressurize, precheck, jump];
 }
 
 test("the full six-chapter simulation reaches jump home", async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto("/?fast=1&sim=1");
-  await boot(page);
-  await triageManifest(page);
+  const bootResponse = await boot(page);
+  const triageResponses = await triageManifest(page);
   await expect
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(3);
-  await routePower(page);
+  const routeResponse = await routePower(page);
   await expect
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(4);
@@ -189,13 +230,31 @@ test("the full six-chapter simulation reaches jump home", async ({ page }) => {
   await expect
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(5);
-  await purgeDrive(page);
+  const purgeResponse = await purgeDrive(page);
   await expect
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(6);
-  await burnHome(page);
+  const burnResponses = await burnHome(page);
+  for (const [label, response] of [
+    ["boot_handshake", bootResponse],
+    ["flag_section s2", triageResponses[0]!],
+    ["flag_section s4", triageResponses[1]!],
+    ["flag_section s5", triageResponses[2]!],
+    ["route_power", routeResponse],
+    ["arm_purge", purgeResponse],
+    ["set_jump_vector", burnResponses[0]!],
+    ["pressurize_injectors", burnResponses[1]!],
+    ["ignite_precheck", burnResponses[2]!],
+    ["execute_jump", burnResponses[3]!],
+  ] as const) {
+    expectCrewHandoff(label, response);
+  }
   expect(
     await page.evaluate(() => window.halcyonSim.getState().chapterDone[6]),
     "the real full sequence must mark Chapter 6 complete",
   ).toBe(true);
+  await expect(page.getByTestId("victory-card")).toBeVisible();
+  await expect(page.getByTestId("replay-timeline")).toContainText(
+    "execute_jump",
+  );
 });

@@ -6,10 +6,33 @@ type Invocation = {
     code?: string;
     detail?: string;
     data?: Record<string, unknown>;
+    human_action?: unknown;
+    wait_for?: unknown;
   };
 };
 
 const JUMP_VECTOR = { x: 0.42, y: -1.07, z: 3.14 };
+const CREW_ONLY_LABEL =
+  "physical control, crew hands only; HALCYON must ask the crew, not operate it";
+
+function expectCrewHandoff(label: string, response: Invocation): void {
+  expect(
+    typeof response.outcome.human_action,
+    `${label} must name the crew action`,
+  ).toBe("string");
+  expect(
+    (response.outcome.human_action as string).trim().length,
+    `${label} human_action must be non-empty`,
+  ).toBeGreaterThan(0);
+  expect(
+    typeof response.outcome.wait_for,
+    `${label} must name the observable wait condition`,
+  ).toBe("string");
+  expect(
+    (response.outcome.wait_for as string).trim().length,
+    `${label} wait_for must be non-empty`,
+  ).toBeGreaterThan(0);
+}
 
 async function invoke(
   page: Page,
@@ -56,6 +79,120 @@ async function completeBurnChecklist(page: Page): Promise<void> {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/?fast=1&sim=1&ch=6");
+});
+
+test("Burn tool descriptions declare the HALCYON sequence and crew physical work", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const registered: Array<{ name: string; description: string }> = [];
+    Object.defineProperty(window, "__burnToolDescriptions", {
+      configurable: true,
+      value: registered,
+    });
+    Object.defineProperty(document, "modelContext", {
+      configurable: true,
+      value: {
+        registerTool(tool: { name: string; description: string }) {
+          registered.push({ name: tool.name, description: tool.description });
+          return { unregister() {} };
+        },
+      },
+    });
+  });
+  await page.goto("/?fast=1&sim=1&ch=6");
+
+  const descriptions = await page.evaluate(
+    () =>
+      (
+        window as typeof window & {
+          __burnToolDescriptions: Array<{ name: string; description: string }>;
+        }
+      ).__burnToolDescriptions,
+  );
+
+  expect(
+    descriptions.filter(({ name }) =>
+      [
+        "set_jump_vector",
+        "pressurize_injectors",
+        "ignite_precheck",
+        "execute_jump",
+      ].includes(name),
+    ),
+  ).toEqual([
+    {
+      name: "set_jump_vector",
+      description:
+        "HALCYON loads the decoded jump vector; the crew alone primes the physical injectors, latches both physical blast shutters, and holds the physical throttle when HALCYON asks.",
+    },
+    {
+      name: "pressurize_injectors",
+      description:
+        "HALCYON pressurizes the drive injectors after locking the jump vector; the crew alone primes the physical injectors on the beat and latches both physical blast shutters.",
+    },
+    {
+      name: "ignite_precheck",
+      description:
+        "HALCYON runs the pre-ignition checklist after the crew completes the physical injector and shutter work; the crew alone holds the physical throttle after HALCYON returns GO.",
+    },
+    {
+      name: "execute_jump",
+      description:
+        "HALCYON lights the drive and executes the jump only after its GO precheck; the crew alone completes the physical throttle hold that HALCYON must wait for.",
+    },
+  ]);
+});
+
+test("Burn gate responses return crew handoff fields for valid errors and successes", async ({
+  page,
+}) => {
+  const pressBeforeVector = await invoke(page, "pressurize_injectors");
+  expect(pressBeforeVector.outcome.code).toBe("SEQUENCE_ORDER");
+
+  const wrongVector = await invoke(page, "set_jump_vector", {
+    x: 1,
+    y: 2,
+    z: 3,
+  });
+  expect(wrongVector.outcome.code).toBe("VECTOR_MISMATCH");
+  const lockedVector = await invoke(page, "set_jump_vector", JUMP_VECTOR);
+  expect(lockedVector.outcome.ok).toBe(true);
+  const pressurized = await invoke(page, "pressurize_injectors");
+  expect(pressurized.outcome.ok).toBe(true);
+
+  const precheckBeforeCrewWork = await invoke(page, "ignite_precheck");
+  expect(precheckBeforeCrewWork.outcome.code).toBe("NOT_READY");
+  for (let tap = 0; tap < 4; tap += 1) {
+    await page.getByTestId("inject-tap").click();
+    await page.waitForTimeout(120);
+  }
+  await holdFor(page, "shutter-left", 300);
+  await holdFor(page, "shutter-right", 300);
+  const precheckGo = await invoke(page, "ignite_precheck");
+  expect(precheckGo.outcome.ok).toBe(true);
+
+  const jumpBeforeThrottle = await invoke(page, "execute_jump");
+  expect(jumpBeforeThrottle.outcome.code).toBe("NOT_READY");
+  await holdFor(page, "throttle", 1_400);
+  const jumped = await invoke(page, "execute_jump");
+  expect(jumped.outcome.ok).toBe(true);
+
+  for (const [label, response] of [
+    ["press before vector", pressBeforeVector],
+    ["wrong vector", wrongVector],
+    ["locked vector", lockedVector],
+    ["pressurized injectors", pressurized],
+    ["precheck before crew work", precheckBeforeCrewWork],
+    ["precheck GO", precheckGo],
+    ["jump before throttle", jumpBeforeThrottle],
+    ["jump complete", jumped],
+  ] as const) {
+    expectCrewHandoff(label, response);
+  }
+  expect(pressurized.outcome.wait_for).toContain("ignite_precheck");
+  expect(precheckGo.outcome.wait_for).toContain("execute_jump");
+  expect(jumpBeforeThrottle.outcome.wait_for).toContain("throttle");
 });
 
 test("wrong vector coaches VECTOR_MISMATCH; precheck names what is missing", async ({
@@ -116,7 +253,7 @@ test("the full interleaved checklist reaches the jump and the replay", async ({
     .toBe(true);
 });
 
-test("Burn renders only physical controls for its human checklist", async ({
+test("Burn exposes crew-only physical controls without bypassing physical completion", async ({
   page,
 }) => {
   await expect(page.getByTestId("inject-tap")).toBeVisible();
@@ -124,10 +261,16 @@ test("Burn renders only physical controls for its human checklist", async ({
   await expect(page.getByTestId("shutter-right")).toBeVisible();
   await expect(page.getByTestId("throttle")).toBeVisible();
   await expect(page.getByTestId("inject-tap")).toHaveAccessibleName(
-    /prime injectors/i,
+    `Prime injectors on the metronome beat — ${CREW_ONLY_LABEL}`,
+  );
+  await expect(page.getByTestId("shutter-left")).toHaveAccessibleName(
+    `Hold left blast shutter until it latches — ${CREW_ONLY_LABEL}`,
+  );
+  await expect(page.getByTestId("shutter-right")).toHaveAccessibleName(
+    `Hold right blast shutter until it latches — ${CREW_ONLY_LABEL}`,
   );
   await expect(page.getByTestId("throttle")).toHaveAccessibleName(
-    /hold throttle/i,
+    `Hold throttle through the shake — ${CREW_ONLY_LABEL}`,
   );
   const stageText = await page.getByTestId("stage").textContent();
   for (const toolName of [
