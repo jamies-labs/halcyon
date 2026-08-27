@@ -92,6 +92,8 @@ test("campaign selector revisits only saved progress", async ({ page }) => {
     );
   });
   await page.goto("/?fast=1");
+  await page.getByTestId("gate-start").click();
+  await expect(page.getByTestId("gate")).toBeHidden();
 
   const before = await page.evaluate(() => window.halcyonSim.getState());
   for (const chapter of [1, 2, 3]) {
