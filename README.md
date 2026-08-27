@@ -1,59 +1,69 @@
 # HALCYON
 
-HALCYON is a browser puzzle game that **one player cannot finish alone**. You are the last awake crew member on the damaged ISV _Halcyon_; your agent becomes the ship computer. The page registers the ship's capabilities as WebMCP tools with `document.modelContext.registerTool`, while you perform the physical work the computer cannot.
+HALCYON is a browser puzzle game for a crew of two: you and your agent must bring one damaged survey ship home together.
 
-The result is a cooperative game, not a chat wrapper: tools change ship state, human tasks require hands-on timing and movement, and each side receives information the other needs.
+You are the last awake crew member aboard the ISV _Halcyon_. Your agent becomes the ship computer through WebMCP tools registered by the page with `document.modelContext.registerTool`; you carry out the physical work the computer cannot. It is a cooperative game rather than a chat wrapper: the tool calls, controls, and information are intentionally split between the two crew members.
 
-## Play with an agent
+## Play it
 
-1. Open the deployed HALCYON page in an agent browser.
-2. Ask the agent to discover the page tools and help bring the ship home.
-3. Follow the ship's speaker and the moving controls for the human tasks; let the agent call the available tools for the computer tasks.
-4. If a tool returns a coaching error, adjust the attempt and try again. Nothing in the game is a punishment or a dead end.
+**Live URL:** coming in Task 14. Until deployment, run the local development server below.
 
-For a fast judging pass, use the **chapter-select** menu in an explicit training session. It lets a judge sample any of the six chapters in about **five minutes** instead of replaying the whole voyage.
+1. Open HALCYON in the latest ChatGPT desktop app and ask your agent to discover the ship's tools and help bring the crew home.
+2. Follow the speaker panel and moving controls for the human tasks. Let the agent make the available WebMCP calls; no UI button duplicates a tool-gated ship action.
+3. For an experimental Chromium session, enable the relevant Chrome WebMCP flag or origin-trial support before opening the page. The API is experimental, so host availability can vary.
+4. Without a WebMCP host, use the built-in crew simulator in the flight recorder to inspect and invoke the same registered tools. It is a training aid, not a substitute for the two-crew experience.
 
-## Six WebMCP lessons
+The chapter menu supports a five-minute judging pass: its explicit simulator route seeds prerequisites for any chapter, and coaching errors never strand the crew.
 
-| Chapter         | WebMCP lesson                            | What happens                                                                                                                  |
-| --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1. Contact      | tool discovery                           | The agent finds the ship's first tools and coordinates the boot handshake with the crew's breaker action.                     |
-| 2. Manifest     | read-only annotations                    | The agent reads the damage manifest through tools marked as read-only annotations while the crew confirms reachable sections. |
-| 3. Power        | JSON-Schema inputs and structured errors | The agent routes a constrained power budget; invalid allocations return structured errors that explain what to correct.       |
-| 4. Antenna      | dynamic registration                     | The crew aligns the dish, then new communications tools appear through dynamic registration.                                  |
-| 5. Two-Man Rule | human confirmation                       | A sensitive purge requires the agent's authorization and a simultaneous physical human confirmation.                          |
-| 6. Burn         | orchestration and replay                 | The agent orchestrates the final preparation tools and the flight recorder presents a replay of the run.                      |
+## How it uses WebMCP
 
-## Run locally
+Each chapter is one capability of the standard, taught as a necessary part of the rescue rather than as a separate demo.
+
+| Chapter         | WebMCP capability                        | Crew handoff                                                                                                |
+| --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1. Contact      | tool discovery                           | The agent finds the first tools and coordinates the boot handshake while the crew works the breaker.        |
+| 2. Manifest     | read-only annotations                    | Read-only damage tools reveal the agent's half of the problem; the crew confirms physical reachability.     |
+| 3. Power        | JSON-Schema inputs and structured errors | The agent iterates on a constrained power allocation and receives structured coaching when it is invalid.   |
+| 4. Antenna      | dynamic registration                     | Aligning the dish makes new communications tools appear mid-session.                                        |
+| 5. Two-Man Rule | human confirmation                       | A sensitive purge combines the agent's authorization with simultaneous physical confirmation from the crew. |
+| 6. Burn         | orchestration and replay                 | The agent coordinates the launch checklist and the flight recorder replays the completed run.               |
+
+After boot, these global tools remain available throughout the voyage.
+
+| Tool                         | Kind      | Purpose                                                                                     |
+| ---------------------------- | --------- | ------------------------------------------------------------------------------------------- |
+| `get_ship_state`             | read-only | Returns an idempotent snapshot of the ship's chapter, subsystems, objectives, and alerts.   |
+| `read_boot_briefing`         | read-only | Introduces HALCYON's mission, persona, and crew protocol to the agent.                      |
+| `broadcast {message, tone?}` | write     | Sends the agent's message to the speaker panel, giving the ship computer an in-world voice. |
+
+Write tools validate their inputs and return structured coaching errors; read-only tools truthfully set `annotations.readOnlyHint`. Chapter transitions update the live registry, so out-of-chapter calls cannot linger.
+
+## Design: the asymmetry model
+
+Neither side can finish alone.
+
+- **Tool-gated state.** Boot, power routing, communications, purge, and jump state change only inside a tool `execute` function. No UI control duplicates them.
+- **Body-gated state.** Human tasks need pointer dexterity: heavy drags, holds of two seconds or more, and two controls at once.
+- **Channel-split information.** Agent-only data returns from tools and never reaches the DOM. Human-only guidance arrives through audio and motion, not DOM text.
+
+Failures are coaching moments, not punishments. A structured error explains the next attempt, and no chapter leaves the crew in a dead end.
+
+## Develop
 
 ```bash
 npm install
 npm run dev
 ```
 
-The Vite server prints a local URL. Open it in an agent-capable browser for the full cooperative experience.
+Open the Vite URL in an agent-capable browser for the full cooperative experience. For repeatable demonstrations, use `?fast=1&sim=1&ch=N`: `fast=1` shortens gameplay timings, `sim=1` activates the crew simulator, and replace `N` with any chapter from `1` through `6`. Simulator sessions seed only their own training state and do not overwrite campaign progress.
 
-Useful verification commands:
+The project checks type safety, focused units, a production build, and Playwright flows in CI. Useful local commands are:
 
 ```bash
 npm run typecheck
 npm run test:unit
-npx playwright test
+npm run test:e2e
 ```
-
-`npm test` is **not defined** in this package. Use `npm run test:unit` for the runnable unit-test command instead.
-
-## Simulator and judge shortcuts
-
-The default campaign progression is sequential: begin at Chapter 1 and earn each later chapter through the two-crew handoffs. For a training or judge shortcut, open `?sim=1&ch=N`, where `N` is **1 through 6**. That explicit simulator route seeds the prerequisite state for the chosen chapter without changing the campaign route.
-
-The default campaign remains untouched: simulator sessions do not alter saved campaign progress. They are visibly marked **TRAINING SIMULATION** at chapter select and after a completed jump, including the flight-recorder replay.
-
-The game also includes timing shortcuts for repeatable demonstrations:
-
-- `?fast=1` uses the shortened gameplay timing contract, which is useful for local testing and demonstrations.
-
-These parameters compose, for example: `?sim=1&fast=1&ch=6`.
 
 ## License
 
