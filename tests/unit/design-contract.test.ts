@@ -278,6 +278,37 @@ describe("design contract activation", () => {
     }
   });
 
+  it("retains every independent chapter and recorder evidence variant", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{ variant?: string }>;
+    };
+    const variants = new Set(
+      parsed.scenarios.map((scenario) => scenario.variant),
+    );
+
+    for (const variant of [
+      "chapter-one-contact",
+      "chapter-two-manifest",
+      "chapter-three-power",
+      "chapter-four-antenna",
+      "chapter-five-two-man",
+      "chapter-six-burn",
+      "training-victory",
+      "recorder-closed",
+      "recorder-open",
+      "recorder-live-tools",
+      "recorder-failure-retry",
+    ]) {
+      expect(
+        variants.has(variant),
+        `review evidence must retain the ${variant} variant`,
+      ).toBe(true);
+    }
+  });
+
   it("declares one closed training-victory review scenario with the required marker", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
