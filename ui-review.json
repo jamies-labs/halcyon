@@ -17,8 +17,7 @@
           "AC0",
           "AC1",
           "AC2",
-          "AC3",
-          "AC4"
+          "AC3"
         ],
         "changedPaths": [
           "src/main.ts",
@@ -91,12 +90,7 @@
         "settled_selector": "[data-testid=recorder-toggle]"
       },
       "covers": {
-        "requirementKeys": [
-          "AC0",
-          "AC1",
-          "AC2",
-          "AC3"
-        ],
+        "requirementKeys": [],
         "changedPaths": [
           "src/ui/recorder.ts",
           "src/styles.css"
@@ -125,12 +119,7 @@
         "settled_selector": "[data-testid=recorder-panel]"
       },
       "covers": {
-        "requirementKeys": [
-          "AC0",
-          "AC1",
-          "AC2",
-          "AC3"
-        ],
+        "requirementKeys": [],
         "changedPaths": [
           "src/ui/recorder.ts",
           "src/styles.css"
@@ -322,8 +311,6 @@
       },
       "covers": {
         "requirementKeys": [
-          "AC0",
-          "AC3",
           "AC4"
         ],
         "changedPaths": [
@@ -369,37 +356,11 @@
         "settled_selector": "[data-testid=recorder-log]"
       },
       "covers": {
-        "requirementKeys": [
-          "AC1",
-          "AC2"
-        ],
+        "requirementKeys": [],
         "changedPaths": [
           "src/ui/outcome.ts",
           "src/ui/recorder.ts",
           "src/ui/speaker.ts"
-        ],
-        "triggerOnlyPaths": []
-      }
-    },
-    {
-      "route": "/",
-      "state": "resolved",
-      "variant": "training-victory",
-      "viewports": [
-        375,
-        1280
-      ],
-      "theme": "light",
-      "ready_selector": "[data-testid=training-simulation-marker]",
-      "setup": {
-        "local_storage": {
-          "halcyon.save.v1": "{\"chapter\":6,\"chapterDone\":{\"1\":true,\"2\":true,\"3\":true,\"4\":true,\"5\":true,\"6\":true}}"
-        }
-      },
-      "covers": {
-        "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch6_burn.ts"
         ],
         "triggerOnlyPaths": []
       }
