@@ -1,8 +1,8 @@
-import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  createYamlMarkerFixture,
+  runDesignContractChecker,
+} from "./design-contract-checker-runner.mjs";
 
 const designFiles = import.meta.glob<string>("/DESIGN.md", {
   eager: true,
@@ -66,51 +66,21 @@ describe("design contract activation", () => {
   });
 
   it("runs_json_contract_checker", () => {
-    const repositoryRoot = resolve(process.cwd());
-    const checker = resolve(
-      repositoryRoot,
-      "scripts/check-design-contract.mjs",
+    const validResult = runDesignContractChecker();
+    expect(validResult.status).toBe(0);
+    expect(validResult.stdout).toContain(
+      "active contract and review coverage verified",
     );
 
-    expect(
-      execFileSync(process.execPath, [checker], {
-        cwd: repositoryRoot,
-        encoding: "utf8",
-      }),
-    ).toContain("active contract and review coverage verified");
-
-    const fixtureRoot = mkdtempSync(join(tmpdir(), "halcyon-design-contract-"));
+    const fixture = createYamlMarkerFixture();
     try {
-      cpSync(resolve(repositoryRoot, "src"), resolve(fixtureRoot, "src"), {
-        recursive: true,
-      });
-      cpSync(
-        resolve(repositoryRoot, "ui-review.json"),
-        resolve(fixtureRoot, "ui-review.json"),
-      );
-      writeFileSync(
-        resolve(fixtureRoot, "DESIGN.md"),
-        `<!-- keelen-design-contract
-status: "active"
-revision: 1
-tokens_file: "src/styles.css"
-shell_files:
-  - "src/main.ts"
-component_roots:
-  - "src/main.ts"
--->`,
-      );
-
-      const malformedResult = spawnSync(process.execPath, [checker], {
-        cwd: fixtureRoot,
-        encoding: "utf8",
-      });
+      const malformedResult = runDesignContractChecker(fixture.root);
       expect(malformedResult.status).not.toBe(0);
       expect(malformedResult.stderr).toContain(
         "design-contract: marker must contain valid JSON",
       );
     } finally {
-      rmSync(fixtureRoot, { force: true, recursive: true });
+      fixture.cleanup();
     }
   });
 
