@@ -112,7 +112,9 @@ describe("design contract activation", () => {
       recorder,
       "recorder interaction scenario must be present",
     ).toBeDefined();
-    expect(recorder?.ready_selector).toBe("[data-testid=recorder-toggle]");
+    expect(recorder?.ready_selector).toBe(
+      "[data-testid=test-console-panel]",
+    );
     expect(recorder?.setup?.settled_selector).toBe(
       "[data-testid=test-console-panel]",
     );
@@ -153,7 +155,6 @@ describe("design contract activation", () => {
       expect(scenario?.state).toBe("resolved");
       expect(scenario?.theme).toBe("light");
       expect(scenario?.viewports).toEqual([375, 768, 1280]);
-      expect(scenario?.ready_selector).toBe("[data-testid=recorder-toggle]");
       expect(scenario?.covers.changedPaths).toEqual(
         expect.arrayContaining(["src/ui/recorder.ts", "src/styles.css"]),
       );
@@ -172,6 +173,10 @@ describe("design contract activation", () => {
     ]);
     expect(closed?.setup?.settled_selector).toBe(
       "[data-testid=recorder-toggle]",
+    );
+    expect(closed?.ready_selector).toBe("[data-testid=recorder-toggle]");
+    expect(opened?.ready_selector).toBe(
+      "[data-testid=test-console-panel]",
     );
     expect(opened?.setup?.interactions).toEqual([
       { action: "click", selector: "[data-testid=gate-start]" },
@@ -218,7 +223,6 @@ describe("design contract activation", () => {
       expect(scenario?.state).toBe("resolved");
       expect(scenario?.theme).toBe("light");
       expect(scenario?.viewports).toEqual([375, 768, 1280]);
-      expect(scenario?.ready_selector).toBe("[data-testid=recorder-toggle]");
       expect(scenario?.setup?.interactions).toBeDefined();
       expect(scenario?.setup?.settled_selector).toBeDefined();
       expect(scenario?.covers.changedPaths).toContain("src/ui/recorder.ts");
@@ -233,6 +237,10 @@ describe("design contract activation", () => {
     expect(liveTools?.setup?.settled_selector).toBe(
       "[data-testid=test-console-panel]",
     );
+    expect(liveTools?.ready_selector).toBe(
+      "[data-testid=test-console-panel]",
+    );
+    expect(failures?.ready_selector).toBe("[data-testid=recorder-toggle]");
     expect(failures?.setup?.settled_selector).toBe(
       "[data-testid=recorder-log]",
     );
