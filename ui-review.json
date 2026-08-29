@@ -238,7 +238,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "recorder-live-tools",
-      "viewports": [375, 768, 1280],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=test-console-panel]",
       "setup": {
@@ -276,7 +276,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "recorder-failure-retry",
-      "viewports": [375, 768, 1280],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-toggle]",
       "setup": {

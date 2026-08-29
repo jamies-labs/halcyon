@@ -118,9 +118,7 @@ describe("design contract activation", () => {
       recorder,
       "recorder interaction scenario must be present",
     ).toBeDefined();
-    expect(recorder?.ready_selector).toBe(
-      "[data-testid=test-console-panel]",
-    );
+    expect(recorder?.ready_selector).toBe("[data-testid=test-console-panel]");
     expect(recorder?.setup?.settled_selector).toBe(
       "[data-testid=test-console-panel]",
     );
@@ -181,9 +179,7 @@ describe("design contract activation", () => {
       "[data-testid=recorder-toggle]",
     );
     expect(closed?.ready_selector).toBe("[data-testid=recorder-toggle]");
-    expect(opened?.ready_selector).toBe(
-      "[data-testid=test-console-panel]",
-    );
+    expect(opened?.ready_selector).toBe("[data-testid=test-console-panel]");
     expect(opened?.setup?.interactions).toEqual([
       { action: "click", selector: "[data-testid=gate-start]" },
       { action: "click", selector: "[data-testid=recorder-toggle]" },
@@ -194,7 +190,7 @@ describe("design contract activation", () => {
     );
   });
 
-  it("declares closed live-tool and retry evidence for the recorder outcomes", () => {
+  it("keeps supplemental recorder evidence within the review capture budget", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
 
@@ -220,7 +216,10 @@ describe("design contract activation", () => {
       (scenario) => scenario.variant === "recorder-failure-retry",
     );
 
-    for (const scenario of [liveTools, failures]) {
+    for (const [scenario, expectedViewports] of [
+      [liveTools, [375, 1280]],
+      [failures, [375, 1280]],
+    ] as const) {
       expect(
         scenario,
         "recorder evidence scenario must be present",
@@ -228,7 +227,10 @@ describe("design contract activation", () => {
       expect(scenario?.route).toBe("/");
       expect(scenario?.state).toBe("resolved");
       expect(scenario?.theme).toBe("light");
-      expect(scenario?.viewports).toEqual([375, 768, 1280]);
+      expect(
+        scenario?.viewports,
+        "supplemental recorder evidence must retain both mobile and desktop captures without duplicating the primary three-viewport coverage",
+      ).toEqual(expectedViewports);
       expect(scenario?.setup?.interactions).toBeDefined();
       expect(scenario?.setup?.settled_selector).toBeDefined();
       expect(scenario?.covers.changedPaths).toContain("src/ui/recorder.ts");
@@ -240,12 +242,19 @@ describe("design contract activation", () => {
       for (const key of requirementKeys) expect(key).toMatch(/^AC\d+/);
     }
 
+    const captureCount = parsed.scenarios.reduce(
+      (total, scenario) => total + scenario.viewports.length,
+      0,
+    );
+    expect(
+      captureCount,
+      "the closed evidence matrix must not exceed the 27-screenshot review limit",
+    ).toBeLessThanOrEqual(27);
+
     expect(liveTools?.setup?.settled_selector).toBe(
       "[data-testid=test-console-panel]",
     );
-    expect(liveTools?.ready_selector).toBe(
-      "[data-testid=test-console-panel]",
-    );
+    expect(liveTools?.ready_selector).toBe("[data-testid=test-console-panel]");
     expect(failures?.ready_selector).toBe("[data-testid=recorder-toggle]");
     expect(failures?.setup?.settled_selector).toBe(
       "[data-testid=recorder-log]",

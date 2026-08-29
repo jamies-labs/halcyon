@@ -292,6 +292,14 @@ describe("Recorder outcomes", () => {
       textOf(consoleToggle!),
       "console control must not resemble a crew objective",
     ).toBe("Test console (optional — not part of normal play)");
+    const consoleHeading = find(
+      consolePanel!,
+      (node) => node.className === "rec-title",
+    );
+    expect(
+      textOf(consoleHeading!),
+      "the separately opened console must repeat its optional, non-crew label",
+    ).toBe("Test console (optional — not part of normal play)");
 
     recorderToggle!.click();
     expect(recorderPanel?.hidden, "history opens from its own control").toBe(

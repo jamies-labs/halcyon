@@ -181,7 +181,7 @@ export function mountRecorderPanel(
       el(
         "h2",
         { class: "rec-title" },
-        "Test console — optional, not part of normal play",
+        "Test console (optional — not part of normal play)",
       ),
       consoleClose,
     ),

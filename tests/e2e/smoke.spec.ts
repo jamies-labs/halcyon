@@ -284,6 +284,11 @@ test("test-console-is-explicitly-optional", async ({ page }) => {
 
   await page.getByTestId("test-console-toggle").click();
   await expect(consolePanel).toBeVisible();
+  await expect(
+    consolePanel.getByRole("heading", {
+      name: "Test console (optional — not part of normal play)",
+    }),
+  ).toBeVisible();
   await page.getByTestId("sim-tool-select").selectOption("get_ship_state");
   await page.getByTestId("sim-invoke").click();
 
