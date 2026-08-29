@@ -64,6 +64,24 @@ describe("design contract activation", () => {
     expect(activation?.covers?.changedPaths).toContain("src/styles.css");
   });
 
+  it("keeps the closed review capture matrix within the 27-screenshot budget", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{ viewports: number[] }>;
+    };
+    const captureCount = parsed.scenarios.reduce(
+      (total, scenario) => total + scenario.viewports.length,
+      0,
+    );
+
+    expect(
+      captureCount,
+      "the closed manifest must not schedule more than 27 screenshots",
+    ).toBeLessThanOrEqual(27);
+  });
+
   it("declares each post-interaction evidence selector required by the review contract", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
