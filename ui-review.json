@@ -7,7 +7,6 @@
       "variant": "gate-visible",
       "viewports": [
         375,
-        768,
         1280
       ],
       "theme": "light",
