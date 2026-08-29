@@ -54,6 +54,11 @@ export function mountGate(
       "A rescue for two crew: you and your agent. Neither of you can save the ship alone.",
     ),
     hostStatus,
+    el(
+      "p",
+      { class: "gate-hint" },
+      "Judging on a clock? The chapter menu up top jumps anywhere with prerequisites pre-seeded.",
+    ),
     start,
   );
   start.addEventListener("click", () => {

@@ -8,11 +8,13 @@
   --color-accent: #6ec8d8;
   --color-accent-strong: #a8e6ea;
   --color-focus: #ffe081;
+  --warn: var(--color-focus);
   --font-display:
     "Arial Narrow", "Roboto Condensed", "Helvetica Neue", sans-serif;
   --font-body: Inter, ui-sans-serif, system-ui, sans-serif;
   --font-utility: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   --font-size-caption: 0.75rem;
+  --font-size-gate-hint: 0.8125rem;
   --space-1: 0.5rem;
   --space-2: 1rem;
   --space-3: 1.5rem;
@@ -706,6 +708,19 @@ dd {
   background: var(--color-accent-strong);
 }
 
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.14) 0 1px,
+    transparent 1px 3px
+  );
+}
+
 .recorder-dock {
   display: grid;
   gap: var(--space-2);
@@ -843,4 +858,23 @@ dd {
     scroll-behavior: auto;
     transition-duration: 0ms;
   }
+}
+
+h1,
+h2 {
+  letter-spacing: 0.25em;
+  font-weight: 600;
+}
+
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: var(--focus-width) solid var(--warn);
+  outline-offset: var(--focus-width);
+}
+
+.gate-hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-gate-hint);
 }
