@@ -108,7 +108,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-two-manifest",
-      "viewports": [375],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-section=s2]",
       "setup": {
@@ -212,7 +212,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-six-burn",
-      "viewports": [375],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=inject-tap]",
       "setup": {

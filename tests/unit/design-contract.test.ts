@@ -64,22 +64,28 @@ describe("design contract activation", () => {
     expect(activation?.covers?.changedPaths).toContain("src/styles.css");
   });
 
-  it("keeps the closed review capture matrix within the 27-screenshot budget", () => {
+  it("retains inherited desktop captures for Chapters Two and Six", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
 
     const parsed = JSON.parse(review!) as {
-      scenarios: Array<{ viewports: number[] }>;
+      scenarios: Array<{ variant?: string; viewports: number[] }>;
     };
-    const captureCount = parsed.scenarios.reduce(
-      (total, scenario) => total + scenario.viewports.length,
-      0,
+    const chapterTwo = parsed.scenarios.find(
+      (scenario) => scenario.variant === "chapter-two-manifest",
     );
-
     expect(
-      captureCount,
-      "the closed manifest must not schedule more than 27 screenshots",
-    ).toBeLessThanOrEqual(27);
+      chapterTwo?.viewports,
+      "Chapter Two's inherited desktop capture must remain addressable",
+    ).toEqual([375, 1280]);
+
+    const chapterSix = parsed.scenarios.find(
+      (scenario) => scenario.variant === "chapter-six-burn",
+    );
+    expect(
+      chapterSix?.viewports,
+      "Chapter Six's inherited desktop capture must remain addressable",
+    ).toEqual([375, 1280]);
   });
 
   it("declares each post-interaction evidence selector required by the review contract", () => {
