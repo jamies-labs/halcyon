@@ -226,6 +226,8 @@ dd {
 .gate-start,
 .recorder-toggle,
 .recorder-close,
+.test-console-toggle,
+.test-console-close,
 .sim-invoke {
   min-width: var(--size-hit-target);
   min-height: var(--size-hit-target);
@@ -245,6 +247,8 @@ dd {
 .chapter-select button:hover,
 .recorder-toggle:hover,
 .recorder-close:hover,
+.test-console-toggle:hover,
+.test-console-close:hover,
 .sim-invoke:hover {
   background: var(--color-accent);
   color: var(--color-canvas);
@@ -253,6 +257,8 @@ dd {
 .chapter-select button:active,
 .recorder-toggle:active,
 .recorder-close:active,
+.test-console-toggle:active,
+.test-console-close:active,
 .sim-invoke:active {
   transform: translateY(var(--border-width));
 }
@@ -261,6 +267,8 @@ dd {
 .gate-start:focus-visible,
 .recorder-toggle:focus-visible,
 .recorder-close:focus-visible,
+.test-console-toggle:focus-visible,
+.test-console-close:focus-visible,
 .sim-invoke:focus-visible,
 .sim-form select:focus-visible,
 .sim-args:focus-visible {
@@ -723,6 +731,7 @@ body::after {
 
 .recorder-dock {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-bottom: var(--border-width) solid var(--color-border);
@@ -733,7 +742,12 @@ body::after {
   justify-self: start;
 }
 
-.recorder-panel {
+.test-console-toggle {
+  justify-self: start;
+}
+
+.recorder-panel,
+.test-console-panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -741,10 +755,13 @@ body::after {
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-surface);
   background: var(--color-surface);
+  grid-column: 1 / -1;
 }
 
 .recorder-panel.hidden,
-.recorder-panel[hidden] {
+.recorder-panel[hidden],
+.test-console-panel.hidden,
+.test-console-panel[hidden] {
   display: none;
 }
 
@@ -804,6 +821,10 @@ body::after {
 }
 
 @media (min-width: 48rem) {
+  .recorder-dock {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .shell {
     padding: var(--space-4);
   }
@@ -819,7 +840,7 @@ body::after {
     padding: var(--space-4);
   }
 
-  .shell:has(.recorder-panel:not([hidden])) {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden])) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(
         var(--size-recorder-dock),
@@ -828,11 +849,13 @@ body::after {
     column-gap: var(--space-3);
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .hud {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .hud {
     grid-column: 1 / -1;
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .recorder-dock {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .recorder-dock {
     grid-column: 2;
     grid-row: 2 / span 2;
     align-self: stretch;
@@ -840,12 +863,14 @@ body::after {
     border-radius: var(--radius-surface);
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .stage {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .stage {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .speaker {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .speaker {
     grid-column: 1;
     grid-row: 3;
   }

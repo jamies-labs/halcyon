@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Recorder } from "../../src/ui/recorder";
+import { mountRecorderPanel, Recorder } from "../../src/ui/recorder";
 import { Speaker } from "../../src/ui/speaker";
+import { ToolRegistry } from "../../src/webmcp/registry";
 import type { InvokeRecord } from "../../src/webmcp/types";
 
 type Child = FakeElement | string;
@@ -37,10 +38,33 @@ class FakeElement {
 
   setAttribute(name: string, value: string): void {
     this.attributes.set(name, value);
+    if (name === "hidden") this.hidden = true;
   }
 
   addEventListener(type: string, listener: Listener): void {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
+  insertBefore(node: FakeElement, before: FakeElement | null): void {
+    const index = before ? this.children.indexOf(before) : -1;
+    if (index === -1) this.children.push(node);
+    else this.children.splice(index, 0, node);
+  }
+
+  querySelector(selector: string): FakeElement | null {
+    if (selector === ".stage")
+      return find(this, (node) => node.className === "stage");
+    return null;
+  }
+
+  get className(): string {
+    return this.attributes.get("class") ?? "";
+  }
+
+  click(): void {
+    for (const listener of this.listeners.get("click") ?? []) {
+      listener(new Event("click"));
+    }
   }
 
   remove(): void {}
@@ -50,6 +74,24 @@ function textOf(node: Child): string {
   return typeof node === "string"
     ? node
     : `${node.textContent}${node.children.map(textOf).join("")}`;
+}
+
+function find(
+  node: FakeElement,
+  predicate: (candidate: FakeElement) => boolean,
+): FakeElement | null {
+  if (predicate(node)) return node;
+  for (const child of node.children) {
+    if (typeof child !== "string") {
+      const found = find(child, predicate);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function byTestId(root: FakeElement, testId: string): FakeElement | null {
+  return find(root, (node) => node.attributes.get("data-testid") === testId);
 }
 
 function record(
@@ -205,5 +247,93 @@ describe("Recorder outcomes", () => {
       speakerOutput,
       "different failures must start another speaker line",
     ).toContain("INVALID_ARGS");
+  });
+
+  it("mounts optional mission history separately from the optional test console", () => {
+    const recorder = new Recorder();
+    const registry = new ToolRegistry(null, (record) =>
+      recorder.record(record),
+    );
+    registry.setTools([
+      {
+        name: "get_ship_state",
+        description: "Read the ship state.",
+        inputSchema: { type: "object", properties: {} },
+        execute: async () => ({ ok: true, data: {} }),
+      },
+    ]);
+    const root = new FakeElement();
+    root.append(
+      Object.assign(new FakeElement(), {
+        attributes: new Map([["class", "stage"]]),
+      }),
+    );
+
+    mountRecorderPanel(recorder, registry, root as unknown as HTMLElement);
+
+    const recorderToggle = byTestId(root, "recorder-toggle");
+    const recorderPanel = byTestId(root, "recorder-panel");
+    const consoleToggle = byTestId(root, "test-console-toggle");
+    const consolePanel = byTestId(root, "test-console-panel");
+
+    expect(
+      recorderToggle,
+      "normal play must expose the optional history control",
+    ).not.toBeNull();
+    expect(
+      textOf(recorderToggle!),
+      "history control must name its view-only purpose",
+    ).toBe("Flight recorder — mission history (optional)");
+    expect(
+      consoleToggle,
+      "the simulator must use its own optional control",
+    ).not.toBeNull();
+    expect(
+      textOf(consoleToggle!),
+      "console control must not resemble a crew objective",
+    ).toBe("Test console (optional — not part of normal play)");
+
+    recorderToggle!.click();
+    expect(recorderPanel?.hidden, "history opens from its own control").toBe(
+      false,
+    );
+    expect(
+      byTestId(recorderPanel!, "recorder-log"),
+      "history retains its timeline",
+    ).not.toBeNull();
+    expect(
+      byTestId(recorderPanel!, "sim-tool-select"),
+      "history must not contain a tool selector",
+    ).toBeNull();
+    expect(
+      byTestId(recorderPanel!, "sim-args"),
+      "history must not contain JSON arguments",
+    ).toBeNull();
+    expect(
+      byTestId(recorderPanel!, "sim-invoke"),
+      "history must not contain an invoke action",
+    ).toBeNull();
+
+    consoleToggle!.click();
+    expect(
+      consolePanel?.hidden,
+      "test console opens only when explicitly invoked",
+    ).toBe(false);
+    expect(
+      byTestId(consolePanel!, "sim-tool-select"),
+      "console keeps the registered-tool selector",
+    ).not.toBeNull();
+    expect(
+      byTestId(consolePanel!, "sim-args"),
+      "console keeps the JSON argument field",
+    ).not.toBeNull();
+    expect(
+      byTestId(consolePanel!, "sim-invoke"),
+      "console keeps the invoke action",
+    ).not.toBeNull();
+    expect(
+      recorderPanel?.hidden,
+      "opening the console must not hide visible mission history",
+    ).toBe(false);
   });
 });

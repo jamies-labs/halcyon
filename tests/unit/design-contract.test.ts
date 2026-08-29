@@ -96,11 +96,11 @@ describe("design contract activation", () => {
     ).toBeDefined();
     expect(recorder?.ready_selector).toBe("[data-testid=recorder-toggle]");
     expect(recorder?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-panel]",
+      "[data-testid=test-console-panel]",
     );
   });
 
-  it("declares tokenized recorder docking evidence for both closed and open states", () => {
+  it("declares-tokenized-optional-recorder-and-console-evidence", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
 
@@ -156,10 +156,12 @@ describe("design contract activation", () => {
       "[data-testid=recorder-toggle]",
     );
     expect(opened?.setup?.interactions).toEqual([
+      { action: "click", selector: "[data-testid=gate-start]" },
       { action: "click", selector: "[data-testid=recorder-toggle]" },
+      { action: "click", selector: "[data-testid=test-console-toggle]" },
     ]);
     expect(opened?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-panel]",
+      "[data-testid=test-console-panel]",
     );
   });
 
@@ -211,7 +213,7 @@ describe("design contract activation", () => {
     }
 
     expect(liveTools?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-panel]",
+      "[data-testid=test-console-panel]",
     );
     expect(failures?.setup?.settled_selector).toBe(
       "[data-testid=recorder-log]",

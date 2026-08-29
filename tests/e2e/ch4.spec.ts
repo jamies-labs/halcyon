@@ -245,12 +245,17 @@ test("comms tools are absent before lock and appear after dynamic registration",
   });
 });
 
-test("open recorder refreshes after antenna registration", async ({ page }) => {
-  const panel = page.getByTestId("recorder-panel");
+test("open-test-console-refreshes-after-antenna-registration", async ({
+  page,
+}) => {
+  const recorder = page.getByTestId("recorder-panel");
+  const panel = page.getByTestId("test-console-panel");
   const select = page.getByTestId("sim-tool-select");
 
   await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("test-console-toggle").click();
   await expect(page.getByTestId("recorder-close")).toBeVisible();
+  await expect(recorder).toBeVisible();
   await expect(panel).toBeVisible();
   await expect(select.locator("option[value=send_distress]")).toHaveCount(0);
 
@@ -260,6 +265,7 @@ test("open recorder refreshes after antenna registration", async ({ page }) => {
     await expect(select.locator(`option[value=${tool}]`)).toHaveCount(1);
   }
   await expect(panel).toBeVisible();
+  await expect(recorder).toBeVisible();
 });
 
 test("dish maps pointer space to its physical ranges without leaking the vector", async ({

@@ -84,9 +84,48 @@ export function mountRecorderPanel(
   container: HTMLElement,
 ): void {
   const log = el("div", { class: "rec-log", "data-testid": "recorder-log" });
+  const recorderClose = el(
+    "button",
+    {
+      class: "recorder-close",
+      type: "button",
+      "data-testid": "recorder-close",
+    },
+    "Close flight recorder",
+  );
+  const recorderPanel = el(
+    "aside",
+    {
+      class: "recorder-panel hidden",
+      "data-testid": "recorder-panel",
+      "aria-label": "Flight recorder — mission history (optional)",
+      "aria-hidden": "true",
+      hidden: "",
+    },
+    el(
+      "div",
+      { class: "recorder-heading" },
+      el("h2", { class: "rec-title" }, "Flight recorder — mission history"),
+      recorderClose,
+    ),
+    log,
+  );
+  recorderPanel.id = "recorder-panel";
+  const recorderToggle = el(
+    "button",
+    {
+      class: "recorder-toggle",
+      type: "button",
+      "data-testid": "recorder-toggle",
+      "aria-controls": "recorder-panel",
+      "aria-expanded": "false",
+    },
+    "Flight recorder — mission history (optional)",
+  );
+
   const select = el("select", {
     "data-testid": "sim-tool-select",
-    "aria-label": "Simulator tool",
+    "aria-label": "Test console tool",
   });
   const args = el("textarea", {
     class: "sim-args",
@@ -118,70 +157,88 @@ export function mountRecorderPanel(
     }
     void registry.invoke(select.value, parsed, "sim");
   });
-  const close = el(
+  const consoleClose = el(
     "button",
     {
-      class: "recorder-close",
+      class: "test-console-close",
       type: "button",
-      "data-testid": "recorder-close",
+      "data-testid": "test-console-close",
     },
-    "Close flight recorder",
+    "Close test console",
   );
-  const panel = el(
+  const consolePanel = el(
     "aside",
     {
-      class: "recorder-panel hidden",
-      "data-testid": "recorder-panel",
-      "aria-label": "Flight recorder and crew simulator",
+      class: "test-console-panel hidden",
+      "data-testid": "test-console-panel",
+      "aria-label": "Test console (optional — not part of normal play)",
       "aria-hidden": "true",
       hidden: "",
     },
     el(
       "div",
       { class: "recorder-heading" },
-      el("h2", { class: "rec-title" }, "Flight recorder / crew simulator"),
-      close,
+      el(
+        "h2",
+        { class: "rec-title" },
+        "Test console — optional, not part of normal play",
+      ),
+      consoleClose,
     ),
-    log,
     el("div", { class: "sim-form" }, select, args, invokeButton),
   );
   recorder.attachLog(log);
-  const toggle = el(
+  consolePanel.id = "test-console-panel";
+  const consoleToggle = el(
     "button",
     {
-      class: "recorder-toggle",
+      class: "test-console-toggle",
       type: "button",
-      "data-testid": "recorder-toggle",
-      "aria-controls": "recorder-panel",
+      "data-testid": "test-console-toggle",
+      "aria-controls": "test-console-panel",
       "aria-expanded": "false",
     },
-    "Open flight recorder",
+    "Test console (optional — not part of normal play)",
   );
-  panel.id = "recorder-panel";
-  const setOpen = (open: boolean): void => {
+  const setOpen = (
+    panel: HTMLElement,
+    toggle: HTMLElement,
+    open: boolean,
+  ): void => {
     panel.hidden = !open;
     panel.classList.toggle("hidden", !open);
     panel.setAttribute("aria-hidden", String(!open));
     toggle.setAttribute("aria-expanded", String(open));
-    toggle.textContent = open
-      ? "Close flight recorder"
-      : "Open flight recorder";
-    if (open) refresh();
   };
-  toggle.addEventListener("click", () => {
-    const open = panel.hidden;
-    setOpen(open);
-    if (!open) toggle.focus();
+  recorderToggle.addEventListener("click", () => {
+    const open = recorderPanel.hidden;
+    setOpen(recorderPanel, recorderToggle, open);
+    if (!open) recorderToggle.focus();
   });
-  close.addEventListener("click", () => {
-    setOpen(false);
-    toggle.focus();
+  recorderClose.addEventListener("click", () => {
+    setOpen(recorderPanel, recorderToggle, false);
+    recorderToggle.focus();
+  });
+  consoleToggle.addEventListener("click", () => {
+    const open = consolePanel.hidden;
+    setOpen(consolePanel, consoleToggle, open);
+    if (open) refresh();
+    else consoleToggle.focus();
+  });
+  consoleClose.addEventListener("click", () => {
+    setOpen(consolePanel, consoleToggle, false);
+    consoleToggle.focus();
   });
   const dock = el(
     "section",
-    { class: "recorder-dock", "aria-label": "Flight recorder controls" },
-    toggle,
-    panel,
+    {
+      class: "recorder-dock",
+      "aria-label": "Optional mission history and test console",
+    },
+    recorderToggle,
+    consoleToggle,
+    recorderPanel,
+    consolePanel,
   );
   container.insertBefore(dock, container.querySelector(".stage"));
 }

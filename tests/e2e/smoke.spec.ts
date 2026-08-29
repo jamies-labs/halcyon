@@ -246,13 +246,44 @@ test("seeded chapter jump registers global tools and delivers broadcasts", async
   );
 });
 
-test("recorder panel lists a selected manual registry call", async ({
-  page,
-}) => {
+test("flight-recorder-is-optional-and-view-only", async ({ page }) => {
+  await page.goto("/?fast=1");
+
+  const recorder = page.getByTestId("recorder-panel");
+  await page.getByTestId("gate-start").click();
+  await expect(
+    page.getByRole("button", {
+      name: "Flight recorder — mission history (optional)",
+    }),
+  ).toBeVisible();
+  await expect(recorder).toBeHidden();
+
+  await page.evaluate(() => window.halcyonSim.invoke("read_boot_briefing"));
+  await page.getByTestId("recorder-toggle").click();
+
+  await expect(recorder).toBeVisible();
+  await expect(page.getByTestId("recorder-log")).toContainText(
+    "read_boot_briefing (sim",
+  );
+  await expect(recorder.getByTestId("sim-tool-select")).toHaveCount(0);
+  await expect(recorder.getByTestId("sim-args")).toHaveCount(0);
+  await expect(recorder.getByTestId("sim-invoke")).toHaveCount(0);
+});
+
+test("test-console-is-explicitly-optional", async ({ page }) => {
   await page.goto("/?fast=1&sim=1&ch=3");
 
-  await page.getByTestId("recorder-toggle").click();
-  await expect(page.getByTestId("recorder-panel")).toBeVisible();
+  const consolePanel = page.getByTestId("test-console-panel");
+  await expect(
+    page.getByRole("button", {
+      name: "Test console (optional — not part of normal play)",
+    }),
+  ).toBeVisible();
+  await expect(consolePanel).toBeHidden();
+  await expect(page.getByTestId("sim-tool-select")).toHaveCount(0);
+
+  await page.getByTestId("test-console-toggle").click();
+  await expect(consolePanel).toBeVisible();
   await page.getByTestId("sim-tool-select").selectOption("get_ship_state");
   await page.getByTestId("sim-invoke").click();
 
@@ -266,6 +297,7 @@ test("recorder renders complete safe invocation outcomes", async ({ page }) => {
 
   const log = page.getByTestId("recorder-log");
   await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("test-console-toggle").click();
   await page.getByTestId("sim-tool-select").selectOption("get_ship_state");
   await page.getByTestId("sim-invoke").click();
 
