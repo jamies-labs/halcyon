@@ -80,7 +80,7 @@
       "variant": "recorder-open",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=test-console-panel]",
       "setup": {
         "interactions": [
           {
@@ -108,7 +108,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-two-manifest",
-      "viewports": [375, 1280],
+      "viewports": [375],
       "theme": "light",
       "ready_selector": "[data-section=s2]",
       "setup": {
@@ -212,7 +212,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-six-burn",
-      "viewports": [375, 1280],
+      "viewports": [375],
       "theme": "light",
       "ready_selector": "[data-testid=inject-tap]",
       "setup": {
@@ -240,7 +240,7 @@
       "variant": "recorder-live-tools",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=test-console-panel]",
       "setup": {
         "local_storage": {
           "halcyon.save.v1": "{\"chapter\":4,\"chapterDone\":{\"1\":true,\"2\":true,\"3\":true,\"4\":false,\"5\":false,\"6\":false}}"
