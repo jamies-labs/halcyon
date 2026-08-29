@@ -1,3 +1,7 @@
+import { execFileSync, spawnSync } from "node:child_process";
+import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const designFiles = import.meta.glob<string>("/DESIGN.md", {
@@ -25,19 +29,94 @@ const playwrightConfigFiles = import.meta.glob<string>(
 );
 
 describe("design contract activation", () => {
-  it("publishes an active, complete contract with the canonical token source", () => {
+  it("parses_schema_one_json_marker", () => {
     const design = designFiles["/DESIGN.md"];
     expect(
       design,
       "DESIGN.md must be present at the repository root",
     ).toBeTypeOf("string");
-    expect(design).toContain("keelen-design-contract");
-    expect(design).toMatch(/status:\s*["']active["']/);
-    expect(design).toMatch(/revision:\s*1\b/);
-    expect(design).toMatch(/tokens_file:\s*["']src\/styles\.css["']/);
-    expect(design).toMatch(/shell_files:\s*\n\s*-\s*["']src\/main\.ts["']/);
-    expect(design).toMatch(/component_roots:\s*\n\s*-\s*["']src\/main\.ts["']/);
+
+    const marker = design?.match(
+      /<!--\s*keelen-design-contract\s*([\s\S]*?)-->/,
+    )?.[1];
+    expect(marker, "DESIGN.md must contain the contract marker").toBeDefined();
+    const contract = JSON.parse(marker!.trim()) as {
+      schema: number;
+      status: string;
+      revision: number;
+      tokens_file: string;
+      shell_files: string[];
+      component_roots: string[];
+    };
+
+    expect(contract.schema).toBe(1);
+    expect(contract.status).toBe("active");
+    expect(contract.revision).toBeGreaterThanOrEqual(1);
+    expect(contract.tokens_file).toBe("src/styles.css");
+    expect(contract.shell_files).toEqual(
+      expect.arrayContaining(["src/main.ts"]),
+    );
+    expect(contract.component_roots).toEqual(
+      expect.arrayContaining(["src/main.ts"]),
+    );
     expect(design).not.toContain("UNSET");
+    expect(design).toContain("## Product brief");
+    expect(design).toContain("## Visual direction");
+    expect(design).toContain("## Implementation system");
+  });
+
+  it("runs_json_contract_checker", () => {
+    const repositoryRoot = resolve(process.cwd());
+    const checker = resolve(
+      repositoryRoot,
+      "scripts/check-design-contract.mjs",
+    );
+
+    expect(
+      execFileSync(process.execPath, [checker], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      }),
+    ).toContain("active contract and review coverage verified");
+
+    const fixtureRoot = mkdtempSync(join(tmpdir(), "halcyon-design-contract-"));
+    try {
+      cpSync(resolve(repositoryRoot, "src"), resolve(fixtureRoot, "src"), {
+        recursive: true,
+      });
+      cpSync(
+        resolve(repositoryRoot, "ui-review.json"),
+        resolve(fixtureRoot, "ui-review.json"),
+      );
+      writeFileSync(
+        resolve(fixtureRoot, "DESIGN.md"),
+        `<!-- keelen-design-contract
+status: "active"
+revision: 1
+tokens_file: "src/styles.css"
+shell_files:
+  - "src/main.ts"
+component_roots:
+  - "src/main.ts"
+-->`,
+      );
+
+      const malformedResult = spawnSync(process.execPath, [checker], {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+      });
+      expect(malformedResult.status).not.toBe(0);
+      expect(malformedResult.stderr).toContain(
+        "design-contract: marker must contain valid JSON",
+      );
+    } finally {
+      rmSync(fixtureRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects_superficial_active_status_marker", () => {
+    const malformedMarker = `status: "active"\nrevision: 1`;
+    expect(() => JSON.parse(malformedMarker)).toThrow(SyntaxError);
   });
 
   it("declares a responsive supplemental mission-console scenario for the contract", () => {
