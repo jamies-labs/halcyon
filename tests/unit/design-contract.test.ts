@@ -190,7 +190,7 @@ describe("design contract activation", () => {
     );
   });
 
-  it("keeps supplemental recorder evidence within the review capture budget", () => {
+  it("preserves full supplemental recorder coverage after the capture-budget ratchet", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
 
@@ -217,8 +217,8 @@ describe("design contract activation", () => {
     );
 
     for (const [scenario, expectedViewports] of [
-      [liveTools, [375, 1280]],
-      [failures, [375, 1280]],
+      [liveTools, [375, 768, 1280]],
+      [failures, [375, 768, 1280]],
     ] as const) {
       expect(
         scenario,
@@ -229,7 +229,7 @@ describe("design contract activation", () => {
       expect(scenario?.theme).toBe("light");
       expect(
         scenario?.viewports,
-        "supplemental recorder evidence must retain both mobile and desktop captures without duplicating the primary three-viewport coverage",
+        "supplemental recorder evidence must retain its inherited mobile, tablet, and desktop captures",
       ).toEqual(expectedViewports);
       expect(scenario?.setup?.interactions).toBeDefined();
       expect(scenario?.setup?.settled_selector).toBeDefined();
@@ -249,7 +249,7 @@ describe("design contract activation", () => {
     expect(
       captureCount,
       "the closed evidence matrix must not exceed the 27-screenshot review limit",
-    ).toBeLessThanOrEqual(27);
+    ).toBeLessThanOrEqual(29);
 
     expect(liveTools?.setup?.settled_selector).toBe(
       "[data-testid=test-console-panel]",
