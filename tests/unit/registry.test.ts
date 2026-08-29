@@ -138,6 +138,37 @@ describe("ToolRegistry", () => {
     expect([...registered.keys()].sort()).toEqual(["a", "b"]);
   });
 
+  it("publishes complete tool lists for set, add, and removal changes", () => {
+    const registry = new ToolRegistry(null, () => {});
+    const subscribe = (
+      registry as unknown as {
+        subscribe?: (listener: (tools: ToolDef[]) => void) => () => void;
+      }
+    ).subscribe;
+
+    expect(
+      typeof subscribe,
+      "the mounted simulator needs a registry change subscription",
+    ).toBe("function");
+    if (!subscribe) return;
+
+    const lists: string[][] = [];
+    const unsubscribe = subscribe.call(registry, (tools) =>
+      lists.push(tools.map((tool) => tool.name)),
+    );
+    registry.setTools([okTool("meter")]);
+    registry.addTools([okTool("send_distress")]);
+    registry.setTools([okTool("send_distress")]);
+    unsubscribe();
+    registry.addTools([okTool("decode_reply")]);
+
+    expect(lists).toEqual([
+      ["meter"],
+      ["meter", "send_distress"],
+      ["send_distress"],
+    ]);
+  });
+
   it("rejects invalid arguments before rate limiting and never executes the tool", async () => {
     const execute = vi.fn(() => ({ ok: true as const, data: "executed" }));
     const registry = new ToolRegistry(null, (record) => records.push(record));

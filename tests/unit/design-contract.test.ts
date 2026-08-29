@@ -163,6 +163,63 @@ describe("design contract activation", () => {
     );
   });
 
+  it("declares closed live-tool and retry evidence for the recorder outcomes", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        route: string;
+        state: string;
+        variant?: string;
+        viewports: number[];
+        theme?: string;
+        ready_selector: string;
+        setup?: {
+          interactions?: Array<{ action: string; selector: string }>;
+          settled_selector?: string;
+        };
+        covers: { changedPaths: string[]; requirementKeys: unknown };
+      }>;
+    };
+    const liveTools = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-live-tools",
+    );
+    const failures = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-failure-retry",
+    );
+
+    for (const scenario of [liveTools, failures]) {
+      expect(
+        scenario,
+        "recorder evidence scenario must be present",
+      ).toBeDefined();
+      expect(scenario?.route).toBe("/");
+      expect(scenario?.state).toBe("resolved");
+      expect(scenario?.theme).toBe("light");
+      expect(scenario?.viewports).toEqual([375, 768, 1280]);
+      expect(scenario?.ready_selector).toBe("[data-testid=recorder-toggle]");
+      expect(scenario?.setup?.interactions).toBeDefined();
+      expect(scenario?.setup?.settled_selector).toBeDefined();
+      expect(scenario?.covers.changedPaths).toContain("src/ui/recorder.ts");
+      const requirementKeys = scenario?.covers.requirementKeys;
+      expect(Array.isArray(requirementKeys)).toBe(true);
+      if (!Array.isArray(requirementKeys)) {
+        throw new Error("recorder evidence requirement keys must be an array");
+      }
+      for (const key of requirementKeys) expect(key).toMatch(/^AC\d+/);
+    }
+
+    expect(liveTools?.setup?.settled_selector).toBe(
+      "[data-testid=recorder-panel]",
+    );
+    expect(failures?.setup?.settled_selector).toBe(
+      "[data-testid=recorder-log]",
+    );
+    expect(liveTools?.covers.changedPaths).toContain("src/webmcp/registry.ts");
+    expect(failures?.covers.changedPaths).toContain("src/ui/speaker.ts");
+  });
+
   it("wires the live shell and E2E touch context required by the recorder dock", () => {
     const app = appFiles["/src/main.ts"];
     const playwrightConfig = playwrightConfigFiles["/playwright.config.ts"];
@@ -223,6 +280,37 @@ describe("design contract activation", () => {
         throw new Error("Chapter Five requirement key must be a string");
       }
       expect(key).toMatch(/^AC\d+/);
+    }
+  });
+
+  it("retains every independent chapter and recorder evidence variant", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{ variant?: string }>;
+    };
+    const variants = new Set(
+      parsed.scenarios.map((scenario) => scenario.variant),
+    );
+
+    for (const variant of [
+      "chapter-one-contact",
+      "chapter-two-manifest",
+      "chapter-three-power",
+      "chapter-four-antenna",
+      "chapter-five-two-man",
+      "chapter-six-burn",
+      "training-victory",
+      "recorder-closed",
+      "recorder-open",
+      "recorder-live-tools",
+      "recorder-failure-retry",
+    ]) {
+      expect(
+        variants.has(variant),
+        `review evidence must retain the ${variant} variant`,
+      ).toBe(true);
     }
   });
 

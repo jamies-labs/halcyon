@@ -261,6 +261,31 @@ test("recorder panel lists a selected manual registry call", async ({
   );
 });
 
+test("recorder renders complete safe invocation outcomes", async ({ page }) => {
+  await page.goto("/?fast=1&sim=1&ch=3");
+
+  const log = page.getByTestId("recorder-log");
+  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("sim-tool-select").selectOption("get_ship_state");
+  await page.getByTestId("sim-invoke").click();
+
+  await expect(log).toContainText("ok=true");
+  await expect(log).toContainText("data: chapter=3");
+  await expect(log).not.toContainText("Restore power: route amps");
+  await expect(log).not.toContainText("life_support:18");
+
+  await page.getByTestId("sim-tool-select").selectOption("route_power");
+  await page.getByTestId("sim-args").fill("{}");
+  await page.getByTestId("sim-invoke").click();
+
+  await expect(log).toContainText("ok=false");
+  await expect(log).toContainText("INVALID_ARGS");
+  await expect(log).toContainText("args.allocations is required");
+  await expect(log).toContainText(
+    "Check the tool inputSchema and correct the arguments.",
+  );
+});
+
 test("recorder opens and closes through pointer, touch and keyboard", async ({
   page,
 }) => {

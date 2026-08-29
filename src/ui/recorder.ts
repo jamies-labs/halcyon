@@ -1,12 +1,16 @@
 import type { InvokeRecord } from "../webmcp/types";
 import type { ToolRegistry } from "../webmcp/registry";
 import { el } from "./dom";
+import { failureSignature, outcomeSummary } from "./outcome";
 
 export interface TimelineEntry {
   t: number;
   kind: "tool" | "human";
   label: string;
   ok?: boolean;
+  outcome?: string;
+  failureKey?: string;
+  retries?: number;
 }
 
 export class Recorder {
@@ -14,11 +18,20 @@ export class Recorder {
   private logElement: HTMLElement | null = null;
 
   record(record: InvokeRecord): void {
+    const failureKey = failureSignature(record.tool, record.outcome);
+    const previous = this.entries.at(-1);
+    if (failureKey && previous?.failureKey === failureKey) {
+      previous.retries = (previous.retries ?? 1) + 1;
+      this.renderAll();
+      return;
+    }
     this.push({
       t: record.t,
       kind: "tool",
       label: `${record.tool} (${record.source}, ${record.ms}ms)`,
       ok: record.outcome.ok,
+      outcome: outcomeSummary(record.outcome),
+      failureKey: failureKey ?? undefined,
     });
   }
 
@@ -32,30 +45,36 @@ export class Recorder {
 
   attachLog(node: HTMLElement): void {
     this.logElement = node;
-    for (const entry of this.entries) this.render(entry);
+    this.renderAll();
   }
 
   private push(entry: TimelineEntry): void {
     this.entries.push(entry);
-    this.render(entry);
+    this.renderAll();
   }
 
-  private render(entry: TimelineEntry): void {
+  private renderAll(): void {
     if (!this.logElement) return;
+    this.logElement.replaceChildren(
+      ...this.entries.map((entry) => this.render(entry)),
+    );
+    this.logElement.scrollTop = this.logElement.scrollHeight;
+  }
+
+  private render(entry: TimelineEntry): HTMLElement {
     const kindClass =
       entry.kind === "human"
         ? "rec-human"
         : entry.ok === false
           ? "rec-err"
           : "rec-tool";
-    this.logElement.append(
-      el(
-        "p",
-        { class: `rec-line ${kindClass}` },
-        `${new Date(entry.t).toLocaleTimeString()} ${entry.label}`,
-      ),
+    const retry =
+      entry.retries && entry.retries > 1 ? ` · retry ×${entry.retries}` : "";
+    return el(
+      "p",
+      { class: `rec-line ${kindClass}` },
+      `${new Date(entry.t).toLocaleTimeString()} ${entry.label}${entry.outcome ? ` · ${entry.outcome}` : ""}${retry}`,
     );
-    this.logElement.scrollTop = this.logElement.scrollHeight;
   }
 }
 
@@ -83,6 +102,7 @@ export function mountRecorderPanel(
         .map((tool) => el("option", { value: tool.name }, tool.name)),
     );
   };
+  registry.subscribe(refresh);
   const invokeButton = el(
     "button",
     { class: "sim-invoke", type: "button", "data-testid": "sim-invoke" },

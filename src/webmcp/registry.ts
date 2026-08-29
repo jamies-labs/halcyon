@@ -16,6 +16,7 @@ interface LiveTool {
 export class ToolRegistry {
   private readonly live = new Map<string, LiveTool>();
   private readonly lastCall = new Map<string, number>();
+  private readonly listeners = new Set<(tools: ToolDef[]) => void>();
   private seq = 0;
 
   constructor(
@@ -27,25 +28,45 @@ export class ToolRegistry {
     return [...this.live.values()].map(({ def }) => def);
   }
 
+  subscribe(listener: (tools: ToolDef[]) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
   setTools(definitions: ToolDef[]): void {
     const desired = new Set(definitions.map(({ name }) => name));
+    let changed = false;
     for (const [name, tool] of this.live) {
       if (!desired.has(name)) {
         tool.registration?.abort();
         this.live.delete(name);
         this.lastCall.delete(name);
+        changed = true;
       }
     }
-    this.addTools(definitions);
+    if (this.add(definitions)) changed = true;
+    if (changed) this.publish();
   }
 
   addTools(definitions: ToolDef[]): void {
+    if (this.add(definitions)) this.publish();
+  }
+
+  private add(definitions: ToolDef[]): boolean {
+    let changed = false;
     for (const definition of definitions) {
       if (this.live.has(definition.name)) continue;
       const registration =
         this.host?.register(this.toHostDescriptor(definition)) ?? null;
       this.live.set(definition.name, { def: definition, registration });
+      changed = true;
     }
+    return changed;
+  }
+
+  private publish(): void {
+    const tools = this.listTools();
+    for (const listener of this.listeners) listener(tools);
   }
 
   async invoke(
