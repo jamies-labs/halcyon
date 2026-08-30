@@ -91,7 +91,11 @@ describe("Task 13 public polish", () => {
         viewports: number[];
         ready_selector: string;
         setup?: unknown;
-        covers: { changedPaths: string[]; requirementKeys: unknown };
+        covers: {
+          changedPaths: string[];
+          requirementKeys: unknown;
+          triggerOnlyPaths?: string[];
+        };
       }>;
     };
     const gate = manifest.scenarios.find(
@@ -109,7 +113,12 @@ describe("Task 13 public polish", () => {
         "index.html",
         "src/styles.css",
         "src/ui/gate.ts",
+        "src/webmcp/registry.ts",
+        "src/webmcp/shim.ts",
       ]),
+    );
+    expect(gate?.covers.triggerOnlyPaths).not.toEqual(
+      expect.arrayContaining(["src/webmcp/registry.ts", "src/webmcp/shim.ts"]),
     );
     expect(Array.isArray(gate?.covers.requirementKeys)).toBe(true);
     if (!Array.isArray(gate?.covers.requirementKeys)) return;

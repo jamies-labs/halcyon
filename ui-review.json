@@ -9,7 +9,7 @@
       "theme": "light",
       "ready_selector": "[data-testid=crew-link-status]",
       "covers": {
-        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
+        "requirementKeys": [],
         "changedPaths": [
           "src/main.ts",
           "src/ui/recorder.ts",
@@ -22,14 +22,10 @@
           "src/game/chapters/types.ts",
           "src/ui/chapterSelect.ts",
           "playwright.config.ts",
+          "src/webmcp/registry.ts",
           "src/webmcp/shim.ts"
         ],
-        "triggerOnlyPaths": [
-          "DESIGN.md",
-          "vite.config.ts",
-          "src/webmcp/shim.ts",
-          "src/webmcp/registry.ts"
-        ]
+        "triggerOnlyPaths": ["DESIGN.md", "vite.config.ts"]
       }
     },
     {
