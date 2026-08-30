@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 
 const root = process.cwd();
 
@@ -10,19 +10,35 @@ function fail(message) {
 
 function readProjectFile(file) {
   const path = resolve(root, file);
+  const relativePath = relative(root, path);
+  if (
+    isAbsolute(file) ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${sep}`)
+  ) {
+    fail(`path must stay within the repository: ${file}`);
+  }
   if (!existsSync(path)) fail(`missing ${file}`);
   return readFileSync(path, "utf8");
 }
 
-function listFromMarker(marker, field) {
-  const match = marker.match(
-    new RegExp(`${field}:\\s*\\n((?:\\s+-\\s+[^\\n]+\\n?)+)`),
-  );
-  if (!match) fail(`marker must declare ${field}`);
-  return match[1]
-    .split("\n")
-    .map((line) => line.trim().replace(/^-\s*["']?|["']$/g, ""))
-    .filter(Boolean);
+function readString(contract, field) {
+  const value = contract[field];
+  if (typeof value !== "string" || value.length === 0)
+    fail(`marker ${field} must be a non-empty string`);
+  return value;
+}
+
+function readPathList(contract, field) {
+  const value = contract[field];
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((path) => typeof path !== "string" || path.length === 0)
+  ) {
+    fail(`marker ${field} must be a non-empty array of paths`);
+  }
+  return value;
 }
 
 const design = readProjectFile("DESIGN.md");
@@ -32,12 +48,26 @@ const marker = design.match(
   /<!--\s*keelen-design-contract\s*([\s\S]*?)-->/,
 )?.[1];
 if (!marker) fail("DESIGN.md is missing the keelen-design-contract marker");
-if (!/^status:\s*["']active["']\s*$/m.test(marker))
-  fail("marker status must be active");
-if (!/^revision:\s*1\s*$/m.test(marker)) fail("marker revision must be 1");
+let contract;
+try {
+  contract = JSON.parse(marker.trim());
+} catch {
+  fail("marker must contain valid JSON");
+}
+if (
+  typeof contract !== "object" ||
+  contract === null ||
+  Array.isArray(contract)
+)
+  fail("marker must contain a JSON object");
+if (contract.schema !== 1) fail("marker schema must be 1");
+if (contract.status !== "active") fail("marker status must be active");
+if (!Number.isInteger(contract.revision) || contract.revision < 1)
+  fail("marker revision must be an integer of at least 1");
 
-const tokenPath = marker.match(/^tokens_file:\s*["']([^"']+)["']\s*$/m)?.[1];
-if (!tokenPath) fail("marker must declare tokens_file");
+const tokenPath = readString(contract, "tokens_file");
+const shellFiles = readPathList(contract, "shell_files");
+const componentRoots = readPathList(contract, "component_roots");
 const tokens = readProjectFile(tokenPath);
 
 const dishStyles =
@@ -83,9 +113,7 @@ if (
   );
 }
 
-for (const field of ["shell_files", "component_roots"]) {
-  for (const path of listFromMarker(marker, field)) readProjectFile(path);
-}
+for (const path of [...shellFiles, ...componentRoots]) readProjectFile(path);
 
 let review;
 try {
