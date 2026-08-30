@@ -106,7 +106,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-two-manifest",
-      "viewports": [375, 1280],
+      "viewports": [375],
       "theme": "light",
       "ready_selector": "[data-section=s2]",
       "setup": {
