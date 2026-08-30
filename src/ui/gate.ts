@@ -2,38 +2,31 @@ import { el } from "./dom";
 
 export function mountGate(
   root: HTMLElement,
-  hostPresent: boolean,
+  crewLinkReady: Promise<boolean>,
   onStart: () => void,
 ): void {
-  const hostStatus = hostPresent
-    ? el(
-        "p",
-        { class: "gate-ok" },
-        "Crew link established. Your agent can see the ship's tools.",
-      )
-    : el(
-        "div",
-        {},
-        el(
-          "p",
-          { class: "gate-warn" },
-          "No crew link. No WebMCP agent was detected in this browser.",
-        ),
-        el(
-          "ul",
-          {},
-          el(
-            "li",
-            {},
-            "Open this page in a WebMCP-compatible browser to play with an agent.",
-          ),
-          el(
-            "li",
-            {},
-            "Or play solo with the crew simulator in the flight recorder.",
-          ),
-        ),
-      );
+  const hostStatus = el(
+    "p",
+    {
+      class: "gate-warn",
+      role: "status",
+      "data-testid": "crew-link-status",
+    },
+    "Verifying crew link…",
+  );
+  void crewLinkReady.then(
+    (connected) => {
+      hostStatus.className = connected ? "gate-ok" : "gate-warn";
+      hostStatus.textContent = connected
+        ? "Crew link established. Your agent can see the ship's tools."
+        : "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.";
+    },
+    () => {
+      hostStatus.className = "gate-warn";
+      hostStatus.textContent =
+        "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.";
+    },
+  );
   const start = el(
     "button",
     { class: "gate-start", type: "button", "data-testid": "gate-start" },

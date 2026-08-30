@@ -24,6 +24,7 @@ function makeFakeHost() {
           entry.aborted = true;
           registered.delete(tool.name);
         },
+        ready: Promise.resolve(),
       };
       return registration;
     },
@@ -88,7 +89,7 @@ describe("detectModelContext", () => {
     expect(unregister).toHaveBeenCalledTimes(1);
   });
 
-  it("adapts legacy navigator.modelContext registration", () => {
+  it("rejects legacy navigator.modelContext without a document host", () => {
     const registerTool =
       vi.fn<
         (tool: HostToolDescriptor, options?: { signal: AbortSignal }) => void
@@ -96,16 +97,14 @@ describe("detectModelContext", () => {
     navigatorWithModelContext.modelContext = { registerTool };
 
     const host = detectModelContext();
-    expect(host).not.toBeNull();
-    host!.register({
-      ...okTool("legacy-tool"),
-      execute: async () => ({ content: [{ type: "text", text: "{}" }] }),
-    });
+    expect(host).toBeNull();
+    expect(registerTool).not.toHaveBeenCalled();
+  });
 
-    expect(registerTool).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "legacy-tool" }),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+  it("rejects invalid document.modelContext hosts", () => {
+    documentWithModelContext.modelContext = { registerTool: true };
+
+    expect(detectModelContext()).toBeNull();
   });
 });
 
@@ -136,6 +135,47 @@ describe("ToolRegistry", () => {
     registry.addTools([okTool("b")]);
 
     expect([...registered.keys()].sort()).toEqual(["a", "b"]);
+  });
+
+  it("reports_initial_webmcp_registration_readiness", async () => {
+    const registration = (ready: Promise<void>): HostRegistration => ({
+      abort: () => {},
+      ready,
+    });
+    const connectedHost: ModelContextHost = {
+      register: () => registration(Promise.resolve()),
+    };
+    const connected = new ToolRegistry(connectedHost, () => {});
+    connected.setTools([
+      okTool("read_boot_briefing"),
+      okTool("boot_handshake"),
+    ]);
+
+    const initialReadiness = (registry: ToolRegistry) =>
+      registry.initialRegistrationReady();
+
+    await expect(initialReadiness(connected)).resolves.toBe(true);
+
+    const rejectedHost: ModelContextHost = {
+      register: () =>
+        registration(Promise.reject(new Error("host declined tool"))),
+    };
+    const rejected = new ToolRegistry(rejectedHost, () => {});
+    rejected.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
+    await expect(initialReadiness(rejected)).resolves.toBe(false);
+
+    const absent = new ToolRegistry(null, () => {});
+    absent.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
+    await expect(initialReadiness(absent)).resolves.toBe(false);
+
+    const thrownHost: ModelContextHost = {
+      register: () => {
+        throw new Error("host registration threw");
+      },
+    };
+    const thrown = new ToolRegistry(thrownHost, () => {});
+    thrown.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
+    await expect(initialReadiness(thrown)).resolves.toBe(false);
   });
 
   it("publishes complete tool lists for set, add, and removal changes", () => {

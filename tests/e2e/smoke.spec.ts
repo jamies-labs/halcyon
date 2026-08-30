@@ -57,6 +57,47 @@ test("shows-judge-hint-without-a-second-gate-action", async ({ page }) => {
   ).toEqual([4, 5]);
 });
 
+test("renders_truthful_crew_link_states", async ({ page }) => {
+  await page.goto("/?fast=1");
+
+  const status = page.getByTestId("crew-link-status");
+  await expect(status).toHaveText(
+    "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.",
+  );
+  await expect(status).not.toContainText("Crew link established");
+
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "modelContext", {
+      configurable: true,
+      value: {
+        registerTool: () => Promise.resolve({ unregister: () => {} }),
+      },
+    });
+  });
+  await page.goto("/?fast=1");
+
+  await expect(status).toHaveText(
+    "Crew link established. Your agent can see the ship's tools.",
+  );
+  await expect(status).not.toContainText("Fallback simulator active");
+});
+
+test("exposes_accessible_compact_crew_link_status", async ({ page }) => {
+  await page.goto("/?fast=1");
+
+  const fallback =
+    "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.";
+  const gate = page.getByTestId("gate");
+  const status = page.getByTestId("crew-link-status");
+  await expect(status).toHaveAttribute("role", "status");
+  await expect(status).toHaveText(fallback);
+  await expect(status).toHaveAccessibleName(fallback);
+  await expect(gate.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(gate.getByRole("button", { name: "Wake the ship" })).toHaveCount(
+    1,
+  );
+});
+
 test("gate shows without sim param and Start reveals the Chapter 1 breaker", async ({
   page,
 }) => {
