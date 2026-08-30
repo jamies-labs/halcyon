@@ -52,6 +52,22 @@ export class ToolRegistry {
     if (this.add(definitions)) this.publish();
   }
 
+  initialRegistrationReady(): Promise<boolean> {
+    const registrations = [...this.live.values()].map(
+      ({ registration }) => registration,
+    );
+    if (
+      !this.host ||
+      registrations.length === 0 ||
+      registrations.includes(null)
+    ) {
+      return Promise.resolve(false);
+    }
+    return Promise.all(registrations.map((registration) => registration!.ready))
+      .then(() => true)
+      .catch(() => false);
+  }
+
   private add(definitions: ToolDef[]): boolean {
     let changed = false;
     for (const definition of definitions) {

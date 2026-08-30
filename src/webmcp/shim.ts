@@ -13,6 +13,7 @@ export interface HostToolDescriptor {
 
 export interface HostRegistration {
   abort(): void;
+  ready: Promise<void>;
 }
 
 export interface ModelContextHost {
@@ -32,26 +33,27 @@ interface ModelContextApi {
 
 export function detectModelContext(): ModelContextHost | null {
   const modelContext =
-    (typeof document === "undefined"
+    typeof document === "undefined"
       ? undefined
-      : (document as Document & { modelContext?: unknown }).modelContext) ??
-    (typeof navigator === "undefined"
-      ? undefined
-      : (navigator as Navigator & { modelContext?: unknown }).modelContext);
+      : (document as Document & { modelContext?: unknown }).modelContext;
   const api = modelContext as ModelContextApi | undefined;
   if (!api || typeof api.registerTool !== "function") return null;
 
   return {
     register(tool) {
       const controller = new AbortController();
-      let registration:
-        | RegistrationHandle
-        | Promise<RegistrationHandle | undefined>
-        | undefined;
+      let registration: ReturnType<
+        NonNullable<ModelContextApi["registerTool"]>
+      >;
       try {
         registration = api.registerTool!(tool, { signal: controller.signal });
-      } catch {
-        registration = api.registerTool!(tool);
+      } catch (error) {
+        return {
+          abort() {
+            controller.abort();
+          },
+          ready: Promise.reject(error),
+        };
       }
 
       return {
@@ -62,13 +64,14 @@ export function detectModelContext(): ModelContextHost | null {
             typeof (registration as Promise<RegistrationHandle>).then ===
               "function"
           ) {
-            void (registration as Promise<RegistrationHandle | undefined>).then(
-              (handle) => handle?.unregister?.(),
-            );
+            void (registration as Promise<RegistrationHandle | undefined>)
+              .then((handle) => handle?.unregister?.())
+              .catch(() => {});
           } else {
             (registration as RegistrationHandle | undefined)?.unregister?.();
           }
         },
+        ready: Promise.resolve(registration).then(() => undefined),
       };
     },
   };

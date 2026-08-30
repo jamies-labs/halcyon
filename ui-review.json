@@ -7,7 +7,7 @@
       "variant": "gate-visible",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": ".gate-hint",
+      "ready_selector": "[data-testid=crew-link-status]",
       "covers": {
         "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
         "changedPaths": [
@@ -23,7 +23,12 @@
           "src/ui/chapterSelect.ts",
           "playwright.config.ts"
         ],
-        "triggerOnlyPaths": ["DESIGN.md", "vite.config.ts"]
+        "triggerOnlyPaths": [
+          "DESIGN.md",
+          "vite.config.ts",
+          "src/webmcp/shim.ts",
+          "src/webmcp/registry.ts"
+        ]
       }
     },
     {

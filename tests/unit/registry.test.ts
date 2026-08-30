@@ -24,6 +24,7 @@ function makeFakeHost() {
           entry.aborted = true;
           registered.delete(tool.name);
         },
+        ready: Promise.resolve(),
       };
       return registration;
     },
@@ -88,7 +89,7 @@ describe("detectModelContext", () => {
     expect(unregister).toHaveBeenCalledTimes(1);
   });
 
-  it("adapts legacy navigator.modelContext registration", () => {
+  it("rejects legacy navigator.modelContext without a document host", () => {
     const registerTool =
       vi.fn<
         (tool: HostToolDescriptor, options?: { signal: AbortSignal }) => void
@@ -96,16 +97,8 @@ describe("detectModelContext", () => {
     navigatorWithModelContext.modelContext = { registerTool };
 
     const host = detectModelContext();
-    expect(host).not.toBeNull();
-    host!.register({
-      ...okTool("legacy-tool"),
-      execute: async () => ({ content: [{ type: "text", text: "{}" }] }),
-    });
-
-    expect(registerTool).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "legacy-tool" }),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(host).toBeNull();
+    expect(registerTool).not.toHaveBeenCalled();
   });
 });
 
@@ -136,6 +129,48 @@ describe("ToolRegistry", () => {
     registry.addTools([okTool("b")]);
 
     expect([...registered.keys()].sort()).toEqual(["a", "b"]);
+  });
+
+  it("reports a crew link only when every initial production registration settles", async () => {
+    const registration = (ready: Promise<void>): HostRegistration => ({
+      abort: () => {},
+      ready,
+    });
+    const connected = new ToolRegistry(
+      { register: () => registration(Promise.resolve()) },
+      () => {},
+    );
+    connected.setTools([okTool("briefing"), okTool("boot")]);
+
+    const readiness = connected as ToolRegistry & {
+      initialRegistrationReady?: () => Promise<boolean>;
+    };
+    expect(
+      typeof readiness.initialRegistrationReady,
+      "the gate must wait for the production registry, not merely detect an API object",
+    ).toBe("function");
+    await expect(readiness.initialRegistrationReady!()).resolves.toBe(true);
+
+    const rejected = new ToolRegistry(
+      { register: () => registration(Promise.reject(new Error("declined"))) },
+      () => {},
+    );
+    rejected.setTools([okTool("briefing"), okTool("boot")]);
+    const rejectedReadiness = rejected as ToolRegistry & {
+      initialRegistrationReady?: () => Promise<boolean>;
+    };
+    await expect(rejectedReadiness.initialRegistrationReady!()).resolves.toBe(
+      false,
+    );
+
+    const absent = new ToolRegistry(null, () => {});
+    absent.setTools([okTool("briefing")]);
+    const absentReadiness = absent as ToolRegistry & {
+      initialRegistrationReady?: () => Promise<boolean>;
+    };
+    await expect(absentReadiness.initialRegistrationReady!()).resolves.toBe(
+      false,
+    );
   });
 
   it("publishes complete tool lists for set, add, and removal changes", () => {

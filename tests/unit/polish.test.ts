@@ -102,7 +102,7 @@ describe("Task 13 public polish", () => {
     expect(gate?.route).toBe("/");
     expect(gate?.state).toBe("resolved");
     expect(gate?.viewports).toEqual(expect.arrayContaining([375, 1280]));
-    expect(gate?.ready_selector).toBe(".gate-hint");
+    expect(gate?.ready_selector).toBe("[data-testid=crew-link-status]");
     expect(gate?.setup).toBeUndefined();
     expect(gate?.covers.changedPaths).toEqual(
       expect.arrayContaining([
