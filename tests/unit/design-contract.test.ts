@@ -406,6 +406,24 @@ describe("design contract activation", () => {
     }
   });
 
+  it("keeps the independent evidence matrix within the screenshot budget", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{ viewports: number[] }>;
+    };
+    const captureCount = parsed.scenarios.reduce(
+      (total, scenario) => total + scenario.viewports.length,
+      0,
+    );
+
+    expect(
+      captureCount,
+      "review evidence must not exceed the 27-capture gate budget",
+    ).toBeLessThanOrEqual(27);
+  });
+
   it("declares one closed training-victory review scenario with the required marker", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");

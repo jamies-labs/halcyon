@@ -303,7 +303,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "training-victory",
-      "viewports": [375, 1280],
+      "viewports": [1280],
       "theme": "light",
       "ready_selector": "[data-testid=training-simulation-marker]",
       "setup": {
