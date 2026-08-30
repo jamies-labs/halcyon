@@ -143,7 +143,7 @@ if (simulatorSession && requestedChapter >= 1 && requestedChapter <= 6) {
 if (simulatorSession) {
   audio.ensureRunning();
 } else {
-  mountGate(app, host !== null, () => {
+  mountGate(app, registry.initialRegistrationReady(), () => {
     audio.ensureRunning();
     speaker.say(
       "Emergency power detected. Hello, crew. Let's go home.",

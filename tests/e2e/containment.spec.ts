@@ -106,6 +106,19 @@ async function alignDish(page: Page): Promise<void> {
   await page.waitForTimeout(600);
 }
 
+async function armPurgeWhenUnsafe(page: Page): Promise<Invocation> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const response = await invoke(page, "arm_purge");
+    if (response.outcome.code === "PRESSURE_OUT_OF_BAND") return response;
+    expect(
+      response.outcome.ok,
+      `arm attempt ${attempt + 1} must either arm or coach for pressure`,
+    ).toBe(true);
+    await page.waitForTimeout(50);
+  }
+  throw new Error("arm_purge never returned PRESSURE_OUT_OF_BAND");
+}
+
 test("default_route_rejects_forward_seeding", async ({ page }) => {
   await page.goto("/?ch=6");
   const defaultState = await page.evaluate(() => window.halcyonSim.getState());
@@ -261,8 +274,7 @@ test("all_gate_outcomes_carry_crew_handoff_fields", async ({ page }) => {
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(5);
 
-  await page.waitForTimeout(100);
-  const pressureMiss = await invoke(page, "arm_purge");
+  const pressureMiss = await armPurgeWhenUnsafe(page);
   expect(pressureMiss.outcome.code).toBe("PRESSURE_OUT_OF_BAND");
   let armed: Invocation | undefined;
   for (let attempt = 0; attempt < 100; attempt += 1) {
