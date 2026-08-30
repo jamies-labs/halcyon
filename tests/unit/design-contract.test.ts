@@ -408,4 +408,35 @@ describe("design contract activation", () => {
       expect(key).toMatch(/^AC\d+/);
     }
   });
+
+  it("seeds the fully completed Chapter Six state for the training-victory capture", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        variant?: string;
+        setup?: { local_storage?: Record<string, string> };
+      }>;
+    };
+    const savedState = parsed.scenarios.find(
+      (scenario) => scenario.variant === "training-victory",
+    )?.setup?.local_storage?.["halcyon.save.v1"];
+
+    expect(
+      savedState,
+      "training-victory must seed the persisted campaign state",
+    ).toBeTypeOf("string");
+    expect(JSON.parse(savedState ?? "null")).toEqual({
+      chapter: 6,
+      chapterDone: {
+        1: true,
+        2: true,
+        3: true,
+        4: true,
+        5: true,
+        6: true,
+      },
+    });
+  });
 });
