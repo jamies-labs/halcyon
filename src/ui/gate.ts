@@ -1,5 +1,21 @@
 import { el } from "./dom";
 
+const VERIFYING_CREW_LINK = "Verifying crew link…";
+const CONNECTED_CREW_LINK =
+  "Crew link established. Your agent can see the ship's tools.";
+const FALLBACK_CREW_LINK =
+  "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.";
+
+function setCrewLinkStatus(
+  status: HTMLParagraphElement,
+  connected: boolean,
+): void {
+  const message = connected ? CONNECTED_CREW_LINK : FALLBACK_CREW_LINK;
+  status.className = connected ? "gate-ok" : "gate-warn";
+  status.textContent = message;
+  status.setAttribute("aria-label", message);
+}
+
 export function mountGate(
   root: HTMLElement,
   crewLinkReady: Promise<boolean>,
@@ -11,20 +27,16 @@ export function mountGate(
       class: "gate-warn",
       role: "status",
       "data-testid": "crew-link-status",
+      "aria-label": VERIFYING_CREW_LINK,
     },
-    "Verifying crew link…",
+    VERIFYING_CREW_LINK,
   );
   void crewLinkReady.then(
     (connected) => {
-      hostStatus.className = connected ? "gate-ok" : "gate-warn";
-      hostStatus.textContent = connected
-        ? "Crew link established. Your agent can see the ship's tools."
-        : "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.";
+      setCrewLinkStatus(hostStatus, connected);
     },
     () => {
-      hostStatus.className = "gate-warn";
-      hostStatus.textContent =
-        "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.";
+      setCrewLinkStatus(hostStatus, false);
     },
   );
   const start = el(

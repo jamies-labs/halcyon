@@ -57,7 +57,9 @@ test("shows-judge-hint-without-a-second-gate-action", async ({ page }) => {
   ).toEqual([4, 5]);
 });
 
-test("renders_truthful_crew_link_states", async ({ page }) => {
+test("renders verified rather than merely detected crew-link states", async ({
+  page,
+}) => {
   await page.goto("/?fast=1");
 
   const status = page.getByTestId("crew-link-status");
@@ -82,7 +84,7 @@ test("renders_truthful_crew_link_states", async ({ page }) => {
   await expect(status).not.toContainText("Fallback simulator active");
 });
 
-test("exposes_accessible_compact_crew_link_status", async ({ page }) => {
+test("exposes the compact crew-link status accessibly", async ({ page }) => {
   await page.goto("/?fast=1");
 
   const fallback =

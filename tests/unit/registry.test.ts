@@ -137,13 +137,17 @@ describe("ToolRegistry", () => {
     expect([...registered.keys()].sort()).toEqual(["a", "b"]);
   });
 
-  it("reports_initial_webmcp_registration_readiness", async () => {
+  it("reports initial crew-link readiness only after every initial host registration settles", async () => {
     const registration = (ready: Promise<void>): HostRegistration => ({
       abort: () => {},
       ready,
     });
+    const registeredNames: string[] = [];
     const connectedHost: ModelContextHost = {
-      register: () => registration(Promise.resolve()),
+      register: (tool) => {
+        registeredNames.push(tool.name);
+        return registration(Promise.resolve());
+      },
     };
     const connected = new ToolRegistry(connectedHost, () => {});
     connected.setTools([
@@ -151,10 +155,8 @@ describe("ToolRegistry", () => {
       okTool("boot_handshake"),
     ]);
 
-    const initialReadiness = (registry: ToolRegistry) =>
-      registry.initialRegistrationReady();
-
-    await expect(initialReadiness(connected)).resolves.toBe(true);
+    await expect(connected.initialRegistrationReady()).resolves.toBe(true);
+    expect(registeredNames).toEqual(["read_boot_briefing", "boot_handshake"]);
 
     const rejectedHost: ModelContextHost = {
       register: () =>
@@ -162,11 +164,11 @@ describe("ToolRegistry", () => {
     };
     const rejected = new ToolRegistry(rejectedHost, () => {});
     rejected.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
-    await expect(initialReadiness(rejected)).resolves.toBe(false);
+    await expect(rejected.initialRegistrationReady()).resolves.toBe(false);
 
     const absent = new ToolRegistry(null, () => {});
     absent.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
-    await expect(initialReadiness(absent)).resolves.toBe(false);
+    await expect(absent.initialRegistrationReady()).resolves.toBe(false);
 
     const thrownHost: ModelContextHost = {
       register: () => {
@@ -175,7 +177,7 @@ describe("ToolRegistry", () => {
     };
     const thrown = new ToolRegistry(thrownHost, () => {});
     thrown.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
-    await expect(initialReadiness(thrown)).resolves.toBe(false);
+    await expect(thrown.initialRegistrationReady()).resolves.toBe(false);
   });
 
   it("publishes complete tool lists for set, add, and removal changes", () => {

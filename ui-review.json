@@ -30,7 +30,8 @@
           "src/game/save.ts",
           "src/game/chapters/types.ts",
           "src/ui/chapterSelect.ts",
-          "playwright.config.ts"
+          "playwright.config.ts",
+          "src/webmcp/shim.ts"
         ],
         "triggerOnlyPaths": [
           "DESIGN.md",
