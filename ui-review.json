@@ -5,20 +5,11 @@
       "route": "/",
       "state": "resolved",
       "variant": "gate-visible",
-      "viewports": [
-        375,
-        768,
-        1280
-      ],
+      "viewports": [375, 768, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=crew-link-status]",
       "covers": {
-        "requirementKeys": [
-          "AC0",
-          "AC3",
-          "AC1",
-          "AC2"
-        ],
+        "requirementKeys": ["AC0", "AC3", "AC1", "AC2"],
         "changedPaths": [
           "src/main.ts",
           "src/ui/recorder.ts",
@@ -44,10 +35,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-one-contact",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=breaker-handle]",
       "setup": {
@@ -66,20 +54,14 @@
           "src/game/chapters/index.ts",
           "src/styles.css"
         ],
-        "triggerOnlyPaths": [
-          "src/game/globalTools.ts"
-        ]
+        "triggerOnlyPaths": ["src/game/globalTools.ts"]
       }
     },
     {
       "route": "/",
       "state": "resolved",
       "variant": "recorder-closed",
-      "viewports": [
-        375,
-        768,
-        1280
-      ],
+      "viewports": [375, 768, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-toggle]",
       "setup": {
@@ -93,10 +75,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/ui/recorder.ts",
-          "src/styles.css"
-        ],
+        "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
         "triggerOnlyPaths": []
       }
     },
@@ -104,11 +83,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "recorder-open",
-      "viewports": [
-        375,
-        768,
-        1280
-      ],
+      "viewports": [375, 768, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-toggle]",
       "setup": {
@@ -122,10 +97,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/ui/recorder.ts",
-          "src/styles.css"
-        ],
+        "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
         "triggerOnlyPaths": []
       }
     },
@@ -133,10 +105,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-two-manifest",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-section=s2]",
       "setup": {
@@ -154,9 +123,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch2_manifest.ts"
-        ],
+        "changedPaths": ["src/game/chapters/ch2_manifest.ts"],
         "triggerOnlyPaths": []
       }
     },
@@ -164,10 +131,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-three-power",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=fuse-tray]",
       "setup": {
@@ -185,9 +149,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch3_power.ts"
-        ],
+        "changedPaths": ["src/game/chapters/ch3_power.ts"],
         "triggerOnlyPaths": []
       }
     },
@@ -195,10 +157,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-four-antenna",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=dish-readout]",
       "setup": {
@@ -216,9 +175,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch4_antenna.ts"
-        ],
+        "changedPaths": ["src/game/chapters/ch4_antenna.ts"],
         "triggerOnlyPaths": []
       }
     },
@@ -226,10 +183,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-five-two-man",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=vent-left]",
       "setup": {
@@ -247,9 +201,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch5_twoman.ts"
-        ],
+        "changedPaths": ["src/game/chapters/ch5_twoman.ts"],
         "triggerOnlyPaths": []
       }
     },
@@ -257,10 +209,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-six-burn",
-      "viewports": [
-        375,
-        1280
-      ],
+      "viewports": [375, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=inject-tap]",
       "setup": {
@@ -278,9 +227,7 @@
       },
       "covers": {
         "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch6_burn.ts"
-        ],
+        "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
     },
@@ -288,11 +235,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "recorder-live-tools",
-      "viewports": [
-        375,
-        768,
-        1280
-      ],
+      "viewports": [375, 768, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-toggle]",
       "setup": {
@@ -312,10 +255,7 @@
         "settled_selector": "[data-testid=recorder-panel]"
       },
       "covers": {
-        "requirementKeys": [
-          "AC0",
-          "AC3"
-        ],
+        "requirementKeys": ["AC0", "AC3"],
         "changedPaths": [
           "src/main.ts",
           "src/ui/outcome.ts",
@@ -329,11 +269,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "recorder-failure-retry",
-      "viewports": [
-        375,
-        768,
-        1280
-      ],
+      "viewports": [375, 768, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=recorder-toggle]",
       "setup": {
@@ -365,6 +301,24 @@
           "src/ui/recorder.ts",
           "src/ui/speaker.ts"
         ],
+        "triggerOnlyPaths": []
+      }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "training-victory",
+      "viewports": [375, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=training-simulation-marker]",
+      "setup": {
+        "local_storage": {
+          "halcyon.save.v1": "{\"chapter\":6,\"chapterDone\":{\"1\":true,\"2\":true,\"3\":true,\"4\":true,\"5\":true,\"6\":true}}"
+        }
+      },
+      "covers": {
+        "requirementKeys": [],
+        "changedPaths": ["src/game/chapters/ch6_burn.ts"],
         "triggerOnlyPaths": []
       }
     }
