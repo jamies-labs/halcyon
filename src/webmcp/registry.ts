@@ -72,8 +72,13 @@ export class ToolRegistry {
     let changed = false;
     for (const definition of definitions) {
       if (this.live.has(definition.name)) continue;
-      const registration =
-        this.host?.register(this.toHostDescriptor(definition)) ?? null;
+      let registration: HostRegistration | null = null;
+      try {
+        registration =
+          this.host?.register(this.toHostDescriptor(definition)) ?? null;
+      } catch {
+        registration = null;
+      }
       this.live.set(definition.name, { def: definition, registration });
       changed = true;
     }

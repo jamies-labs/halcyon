@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mountGate } from "../../src/ui/gate";
 
 class FakeTextNode {
@@ -37,59 +37,57 @@ function statusIn(root: FakeElement): FakeElement {
 }
 
 describe("mountGate", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("keeps the crew-link status accessible through verification and every settled outcome", async () => {
     vi.stubGlobal("document", {
       createElement: () => new FakeElement(),
       createTextNode: (text: string) => new FakeTextNode(text),
     } as unknown as Document);
 
-    try {
-      const states = [
-        {
-          readiness: () => Promise.resolve(true),
-          expected:
-            "Crew link established. Your agent can see the ship's tools.",
-        },
-        {
-          readiness: () => Promise.resolve(false),
-          expected:
-            "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.",
-        },
-        {
-          readiness: () =>
-            Promise.reject(new Error("host registration declined")),
-          expected:
-            "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.",
-        },
-      ];
+    const states = [
+      {
+        readiness: () => Promise.resolve(true),
+        expected: "Crew link established. Your agent can see the ship's tools.",
+      },
+      {
+        readiness: () => Promise.resolve(false),
+        expected:
+          "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.",
+      },
+      {
+        readiness: () =>
+          Promise.reject(new Error("host registration declined")),
+        expected:
+          "Fallback simulator active — not a real WebMCP test. No crew link is available in this browser.",
+      },
+    ];
 
-      for (const { readiness, expected } of states) {
-        const root = new FakeElement();
-        mountGate(root as unknown as HTMLElement, readiness(), () => {});
-        const status = statusIn(root);
+    for (const { readiness, expected } of states) {
+      const root = new FakeElement();
+      mountGate(root as unknown as HTMLElement, readiness(), () => {});
+      const status = statusIn(root);
 
-        expect(
-          status.textContent,
-          "the pending state must identify itself",
-        ).toBe("Verifying crew link…");
-        expect(
-          status.attributes.get("aria-label"),
-          "the pending status must have the same accessible name as its visible text",
-        ).toBe("Verifying crew link…");
+      expect(status.textContent, "the pending state must identify itself").toBe(
+        "Verifying crew link…",
+      );
+      expect(
+        status.attributes.get("aria-label"),
+        "the pending status must have the same accessible name as its visible text",
+      ).toBe("Verifying crew link…");
 
-        await Promise.resolve();
+      await Promise.resolve();
 
-        expect(
-          status.textContent,
-          "the visible settled status must be exact",
-        ).toBe(expected);
-        expect(
-          status.attributes.get("aria-label"),
-          "the settled accessible name must match the visible crew-link result",
-        ).toBe(expected);
-      }
-    } finally {
-      vi.unstubAllGlobals();
+      expect(
+        status.textContent,
+        "the visible settled status must be exact",
+      ).toBe(expected);
+      expect(
+        status.attributes.get("aria-label"),
+        "the settled accessible name must match the visible crew-link result",
+      ).toBe(expected);
     }
   });
 });

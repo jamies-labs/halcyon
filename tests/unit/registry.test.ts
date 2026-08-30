@@ -100,6 +100,12 @@ describe("detectModelContext", () => {
     expect(host).toBeNull();
     expect(registerTool).not.toHaveBeenCalled();
   });
+
+  it("rejects invalid document.modelContext hosts", () => {
+    documentWithModelContext.modelContext = { registerTool: true };
+
+    expect(detectModelContext()).toBeNull();
+  });
 });
 
 describe("ToolRegistry", () => {
@@ -131,44 +137,74 @@ describe("ToolRegistry", () => {
     expect([...registered.keys()].sort()).toEqual(["a", "b"]);
   });
 
-  it("reports a crew link only when every initial production registration settles", async () => {
-    const registration = (ready: Promise<void>): HostRegistration => ({
-      abort: () => {},
-      ready,
-    });
+  it("reports initial crew-link readiness only after every initial host registration settles", async () => {
+    const registeredNames: string[] = [];
+    const register = (ready: Promise<void>) =>
+      ({
+        abort: () => {},
+        ready,
+      }) as HostRegistration & { ready: Promise<void> };
     const connected = new ToolRegistry(
-      { register: () => registration(Promise.resolve()) },
+      {
+        register: (tool) => {
+          registeredNames.push(tool.name);
+          return register(Promise.resolve());
+        },
+      },
       () => {},
     );
-    connected.setTools([okTool("briefing"), okTool("boot")]);
+    connected.setTools([
+      okTool("read_boot_briefing"),
+      okTool("boot_handshake"),
+    ]);
 
     const readiness = connected as ToolRegistry & {
-      initialRegistrationReady?: () => Promise<boolean>;
+      initialRegistrationReady(): Promise<boolean>;
     };
     expect(
       typeof readiness.initialRegistrationReady,
       "the gate must wait for the production registry, not merely detect an API object",
     ).toBe("function");
-    await expect(readiness.initialRegistrationReady!()).resolves.toBe(true);
+    await expect(readiness.initialRegistrationReady()).resolves.toBe(true);
+    expect(registeredNames).toEqual(["read_boot_briefing", "boot_handshake"]);
 
-    const rejected = new ToolRegistry(
-      { register: () => registration(Promise.reject(new Error("declined"))) },
+    const declined = new ToolRegistry(
+      {
+        register: () =>
+          register(Promise.reject(new Error("host declined tool"))),
+      },
       () => {},
     );
-    rejected.setTools([okTool("briefing"), okTool("boot")]);
-    const rejectedReadiness = rejected as ToolRegistry & {
-      initialRegistrationReady?: () => Promise<boolean>;
+    declined.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
+    const declinedReadiness = declined as ToolRegistry & {
+      initialRegistrationReady(): Promise<boolean>;
     };
-    await expect(rejectedReadiness.initialRegistrationReady!()).resolves.toBe(
+    await expect(declinedReadiness.initialRegistrationReady()).resolves.toBe(
       false,
     );
 
     const absent = new ToolRegistry(null, () => {});
-    absent.setTools([okTool("briefing")]);
+    absent.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
     const absentReadiness = absent as ToolRegistry & {
-      initialRegistrationReady?: () => Promise<boolean>;
+      initialRegistrationReady(): Promise<boolean>;
     };
-    await expect(absentReadiness.initialRegistrationReady!()).resolves.toBe(
+    await expect(absentReadiness.initialRegistrationReady()).resolves.toBe(
+      false,
+    );
+
+    const thrown = new ToolRegistry(
+      {
+        register: () => {
+          throw new Error("host registration threw");
+        },
+      },
+      () => {},
+    );
+    thrown.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
+    const thrownReadiness = thrown as ToolRegistry & {
+      initialRegistrationReady(): Promise<boolean>;
+    };
+    await expect(thrownReadiness.initialRegistrationReady()).resolves.toBe(
       false,
     );
   });

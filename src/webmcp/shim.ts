@@ -36,6 +36,7 @@ export function detectModelContext(): ModelContextHost | null {
     typeof document === "undefined"
       ? undefined
       : (document as Document & { modelContext?: unknown }).modelContext;
+  if (typeof modelContext !== "object" || modelContext === null) return null;
   const api = modelContext as ModelContextApi | undefined;
   if (!api || typeof api.registerTool !== "function") return null;
 

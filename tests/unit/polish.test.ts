@@ -101,7 +101,7 @@ describe("Task 13 public polish", () => {
     expect(gate, "the initial gate scenario must be present").toBeDefined();
     expect(gate?.route).toBe("/");
     expect(gate?.state).toBe("resolved");
-    expect(gate?.viewports).toEqual(expect.arrayContaining([375, 1280]));
+    expect(gate?.viewports).toEqual([375, 768, 1280]);
     expect(gate?.ready_selector).toBe("[data-testid=crew-link-status]");
     expect(gate?.setup).toBeUndefined();
     expect(gate?.covers.changedPaths).toEqual(
@@ -116,5 +116,39 @@ describe("Task 13 public polish", () => {
     for (const key of gate.covers.requirementKeys) {
       expect(key).toMatch(/^AC\d+/);
     }
+  });
+
+  it("retains the existing training-victory evidence while extending the gate", () => {
+    const review = rootFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be available").toBeTypeOf("string");
+    if (typeof review !== "string") return;
+
+    const manifest = JSON.parse(review) as {
+      scenarios: Array<{
+        route: string;
+        state: string;
+        variant?: string;
+        viewports: number[];
+        ready_selector: string;
+        setup?: { local_storage?: Record<string, string> };
+      }>;
+    };
+    const victory = manifest.scenarios.find(
+      (scenario) => scenario.variant === "training-victory",
+    );
+
+    expect(
+      victory,
+      "the pre-existing victory capture must not be evicted",
+    ).toBeDefined();
+    expect(victory?.route).toBe("/");
+    expect(victory?.state).toBe("resolved");
+    expect(victory?.viewports).toEqual([1280]);
+    expect(victory?.ready_selector).toBe(
+      "[data-testid=training-simulation-marker]",
+    );
+    expect(victory?.setup?.local_storage?.["halcyon.save.v1"]).toBe(
+      '{"chapter":6,"chapterDone":{"1":true,"2":true,"3":true,"4":true,"5":true,"6":true}}',
+    );
   });
 });
