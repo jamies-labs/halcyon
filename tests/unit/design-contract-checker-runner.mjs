@@ -1,8 +1,14 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const repositoryRoot = resolve(
   fileURLToPath(new URL("../..", import.meta.url)),
@@ -21,15 +27,16 @@ export function runDesignContractChecker(root = repositoryRoot) {
   };
 }
 
+function copyCheckerFixtureFile(root, file) {
+  const destination = resolve(root, file);
+  mkdirSync(dirname(destination), { recursive: true });
+  copyFileSync(resolve(repositoryRoot, file), destination);
+}
+
 export function createMarkerFixture(marker) {
   const root = mkdtempSync(join(tmpdir(), "halcyon-design-contract-"));
-  cpSync(resolve(repositoryRoot, "src"), resolve(root, "src"), {
-    recursive: true,
-  });
-  cpSync(
-    resolve(repositoryRoot, "ui-review.json"),
-    resolve(root, "ui-review.json"),
-  );
+  for (const file of ["src/main.ts", "src/styles.css", "ui-review.json"])
+    copyCheckerFixtureFile(root, file);
   writeFileSync(
     resolve(root, "DESIGN.md"),
     `<!-- keelen-design-contract\n${marker}\n-->`,

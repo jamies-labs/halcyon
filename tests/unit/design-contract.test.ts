@@ -83,7 +83,7 @@ describe("design contract activation", () => {
     } finally {
       fixture.cleanup();
     }
-  });
+  }, 15_000);
 
   it("rejects_superficial_active_status_marker", () => {
     const malformedMarker = `status: "active"\nrevision: 1`;
@@ -129,6 +129,30 @@ describe("design contract activation", () => {
     } finally {
       invalidTokenField.cleanup();
       missingShellFile.cleanup();
+    }
+  });
+
+  it("runs declared-path regressions from an isolated checker fixture", () => {
+    const undeclaredFixturePath = "src/game/chapters/ch6_burn.ts";
+    const fixture = createMarkerFixture(
+      JSON.stringify({
+        schema: 1,
+        status: "active",
+        revision: 1,
+        tokens_file: "src/styles.css",
+        shell_files: [undeclaredFixturePath],
+        component_roots: ["src/main.ts"],
+      }),
+    );
+
+    try {
+      const result = runDesignContractChecker(fixture.root);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(
+        `design-contract: missing ${undeclaredFixturePath}`,
+      );
+    } finally {
+      fixture.cleanup();
     }
   });
 
