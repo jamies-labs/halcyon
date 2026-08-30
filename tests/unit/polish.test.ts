@@ -101,7 +101,7 @@ describe("Task 13 public polish", () => {
     expect(gate, "the initial gate scenario must be present").toBeDefined();
     expect(gate?.route).toBe("/");
     expect(gate?.state).toBe("resolved");
-    expect(gate?.viewports).toEqual(expect.arrayContaining([375, 1280]));
+    expect(gate?.viewports).toEqual([375, 768, 1280]);
     expect(gate?.ready_selector).toBe("[data-testid=crew-link-status]");
     expect(gate?.setup).toBeUndefined();
     expect(gate?.covers.changedPaths).toEqual(

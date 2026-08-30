@@ -5,7 +5,7 @@
       "route": "/",
       "state": "resolved",
       "variant": "gate-visible",
-      "viewports": [375, 1280],
+      "viewports": [375, 768, 1280],
       "theme": "light",
       "ready_selector": "[data-testid=crew-link-status]",
       "covers": {
