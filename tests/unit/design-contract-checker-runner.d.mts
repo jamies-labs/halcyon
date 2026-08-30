@@ -10,4 +10,5 @@ export interface DesignContractFixture {
 }
 
 export function runDesignContractChecker(root?: string): CheckerResult;
+export function createMarkerFixture(marker: string): DesignContractFixture;
 export function createYamlMarkerFixture(): DesignContractFixture;

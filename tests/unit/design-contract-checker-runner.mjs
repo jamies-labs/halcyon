@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join, resolve } from "node:path";
 
-const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+const repositoryRoot = resolve(
+  fileURLToPath(new URL("../..", import.meta.url)),
+);
 const checker = resolve(repositoryRoot, "scripts/check-design-contract.mjs");
 
 export function runDesignContractChecker(root = repositoryRoot) {
@@ -19,7 +21,7 @@ export function runDesignContractChecker(root = repositoryRoot) {
   };
 }
 
-export function createYamlMarkerFixture() {
+export function createMarkerFixture(marker) {
   const root = mkdtempSync(join(tmpdir(), "halcyon-design-contract-"));
   cpSync(resolve(repositoryRoot, "src"), resolve(root, "src"), {
     recursive: true,
@@ -30,18 +32,20 @@ export function createYamlMarkerFixture() {
   );
   writeFileSync(
     resolve(root, "DESIGN.md"),
-    `<!-- keelen-design-contract
-status: "active"
-revision: 1
-tokens_file: "src/styles.css"
-shell_files:
-  - "src/main.ts"
-component_roots:
-  - "src/main.ts"
--->`,
+    `<!-- keelen-design-contract\n${marker}\n-->`,
   );
   return {
     root,
     cleanup: () => rmSync(root, { force: true, recursive: true }),
   };
+}
+
+export function createYamlMarkerFixture() {
+  return createMarkerFixture(`status: "active"
+revision: 1
+tokens_file: "src/styles.css"
+shell_files:
+  - "src/main.ts"
+component_roots:
+  - "src/main.ts"`);
 }
