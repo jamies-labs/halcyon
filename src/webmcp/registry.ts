@@ -63,9 +63,11 @@ export class ToolRegistry {
     ) {
       return Promise.resolve(false);
     }
-    return Promise.all(registrations.map((registration) => registration!.ready))
-      .then(() => true)
-      .catch(() => false);
+    return Promise.allSettled(
+      registrations.map((registration) => registration!.ready),
+    ).then((results) =>
+      results.every((result) => result.status === "fulfilled"),
+    );
   }
 
   private add(definitions: ToolDef[]): boolean {

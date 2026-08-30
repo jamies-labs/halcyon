@@ -209,6 +209,46 @@ describe("ToolRegistry", () => {
     );
   });
 
+  it("keeps the crew link verifying until every initial registration settles after a rejection", async () => {
+    let rejectFirst: (reason?: unknown) => void = () => {};
+    let resolveSecond: () => void = () => {};
+    const firstReady = new Promise<void>((_resolve, reject) => {
+      rejectFirst = reject;
+    });
+    const secondReady = new Promise<void>((resolve) => {
+      resolveSecond = resolve;
+    });
+    let registrationIndex = 0;
+    const registry = new ToolRegistry(
+      {
+        register: () => ({
+          abort: () => {},
+          ready: [firstReady, secondReady][registrationIndex++]!,
+        }),
+      },
+      () => {},
+    );
+    registry.setTools([okTool("read_boot_briefing"), okTool("boot_handshake")]);
+
+    let settled = false;
+    const readiness = registry.initialRegistrationReady().then((connected) => {
+      settled = true;
+      return connected;
+    });
+    rejectFirst(new Error("host declined first tool"));
+    for (let microtask = 0; microtask < 4; microtask += 1) {
+      await Promise.resolve();
+    }
+
+    expect(
+      settled,
+      "a rejected registration must not replace the verifying state while another initial registration is pending",
+    ).toBe(false);
+
+    resolveSecond();
+    await expect(readiness).resolves.toBe(false);
+  });
+
   it("publishes complete tool lists for set, add, and removal changes", () => {
     const registry = new ToolRegistry(null, () => {});
     const subscribe = (
