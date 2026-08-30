@@ -363,29 +363,6 @@
         ],
         "triggerOnlyPaths": []
       }
-    },
-    {
-      "route": "/",
-      "state": "resolved",
-      "variant": "training-victory",
-      "viewports": [
-        375,
-        1280
-      ],
-      "theme": "light",
-      "ready_selector": "[data-testid=training-simulation-marker]",
-      "setup": {
-        "local_storage": {
-          "halcyon.save.v1": "{\"chapter\":6,\"chapterDone\":{\"1\":true,\"2\":true,\"3\":true,\"4\":true,\"5\":true,\"6\":true}}"
-        }
-      },
-      "covers": {
-        "requirementKeys": [],
-        "changedPaths": [
-          "src/game/chapters/ch6_burn.ts"
-        ],
-        "triggerOnlyPaths": []
-      }
     }
   ]
 }
