@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import {
+  createMarkerFixture,
+  createYamlMarkerFixture,
+  runDesignContractChecker,
+} from "./design-contract-checker-runner.mjs";
 
 const designFiles = import.meta.glob<string>("/DESIGN.md", {
   eager: true,
@@ -25,19 +30,130 @@ const playwrightConfigFiles = import.meta.glob<string>(
 );
 
 describe("design contract activation", () => {
-  it("publishes an active, complete contract with the canonical token source", () => {
+  it("parses_schema_one_json_marker", () => {
     const design = designFiles["/DESIGN.md"];
     expect(
       design,
       "DESIGN.md must be present at the repository root",
     ).toBeTypeOf("string");
-    expect(design).toContain("keelen-design-contract");
-    expect(design).toMatch(/status:\s*["']active["']/);
-    expect(design).toMatch(/revision:\s*1\b/);
-    expect(design).toMatch(/tokens_file:\s*["']src\/styles\.css["']/);
-    expect(design).toMatch(/shell_files:\s*\n\s*-\s*["']src\/main\.ts["']/);
-    expect(design).toMatch(/component_roots:\s*\n\s*-\s*["']src\/main\.ts["']/);
+
+    const marker = design?.match(
+      /<!--\s*keelen-design-contract\s*([\s\S]*?)-->/,
+    )?.[1];
+    expect(marker, "DESIGN.md must contain the contract marker").toBeDefined();
+    const contract = JSON.parse(marker!.trim()) as {
+      schema: number;
+      status: string;
+      revision: number;
+      tokens_file: string;
+      shell_files: string[];
+      component_roots: string[];
+    };
+
+    expect(contract.schema).toBe(1);
+    expect(contract.status).toBe("active");
+    expect(contract.revision).toBeGreaterThanOrEqual(1);
+    expect(contract.tokens_file).toBe("src/styles.css");
+    expect(contract.shell_files).toEqual(
+      expect.arrayContaining(["src/main.ts"]),
+    );
+    expect(contract.component_roots).toEqual(
+      expect.arrayContaining(["src/main.ts"]),
+    );
     expect(design).not.toContain("UNSET");
+    expect(design).toContain("## Product brief");
+    expect(design).toContain("## Visual direction");
+    expect(design).toContain("## Implementation system");
+  });
+
+  it("runs_json_contract_checker", () => {
+    const validResult = runDesignContractChecker();
+    expect(validResult.status).toBe(0);
+    expect(validResult.stdout).toContain(
+      "active contract and review coverage verified",
+    );
+
+    const fixture = createYamlMarkerFixture();
+    try {
+      const malformedResult = runDesignContractChecker(fixture.root);
+      expect(malformedResult.status).not.toBe(0);
+      expect(malformedResult.stderr).toContain(
+        "design-contract: marker must contain valid JSON",
+      );
+    } finally {
+      fixture.cleanup();
+    }
+  }, 15_000);
+
+  it("rejects_superficial_active_status_marker", () => {
+    const malformedMarker = `status: "active"\nrevision: 1`;
+    expect(() => JSON.parse(malformedMarker)).toThrow(SyntaxError);
+  });
+
+  it("rejects JSON contracts with invalid field types and declared paths", () => {
+    const invalidTokenField = createMarkerFixture(
+      JSON.stringify({
+        schema: 1,
+        status: "active",
+        revision: 1,
+        tokens_file: [],
+        shell_files: ["src/main.ts"],
+        component_roots: ["src/main.ts"],
+      }),
+    );
+    const missingShellFile = createMarkerFixture(
+      JSON.stringify({
+        schema: 1,
+        status: "active",
+        revision: 1,
+        tokens_file: "src/styles.css",
+        shell_files: ["src/missing-shell.ts"],
+        component_roots: ["src/main.ts"],
+      }),
+    );
+
+    try {
+      const invalidFieldResult = runDesignContractChecker(
+        invalidTokenField.root,
+      );
+      expect(invalidFieldResult.status).not.toBe(0);
+      expect(invalidFieldResult.stderr).toContain(
+        "design-contract: marker tokens_file must be a non-empty string",
+      );
+
+      const missingPathResult = runDesignContractChecker(missingShellFile.root);
+      expect(missingPathResult.status).not.toBe(0);
+      expect(missingPathResult.stderr).toContain(
+        "design-contract: missing src/missing-shell.ts",
+      );
+    } finally {
+      invalidTokenField.cleanup();
+      missingShellFile.cleanup();
+    }
+  });
+
+  it("runs declared-path regressions from an isolated checker fixture", () => {
+    const undeclaredFixturePath = "src/game/chapters/ch6_burn.ts";
+    const fixture = createMarkerFixture(
+      JSON.stringify({
+        schema: 1,
+        status: "active",
+        revision: 1,
+        tokens_file: "src/styles.css",
+        shell_files: [undeclaredFixturePath],
+        component_roots: ["src/main.ts"],
+      }),
+    );
+
+    try {
+      const result = runDesignContractChecker(fixture.root);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(
+        `design-contract: missing ${undeclaredFixturePath}`,
+      );
+    } finally {
+      fixture.cleanup();
+    }
   });
 
   it("declares a responsive supplemental mission-console scenario for the contract", () => {
@@ -314,6 +430,24 @@ describe("design contract activation", () => {
     }
   });
 
+  it("keeps the independent evidence matrix within the screenshot budget", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{ viewports: number[] }>;
+    };
+    const captureCount = parsed.scenarios.reduce(
+      (total, scenario) => total + scenario.viewports.length,
+      0,
+    );
+
+    expect(
+      captureCount,
+      "review evidence must not exceed the 27-capture gate budget",
+    ).toBeLessThanOrEqual(27);
+  });
+
   it("declares one closed training-victory review scenario with the required marker", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
@@ -358,5 +492,36 @@ describe("design contract activation", () => {
       }
       expect(key).toMatch(/^AC\d+/);
     }
+  });
+
+  it("seeds the fully completed Chapter Six state for the training-victory capture", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        variant?: string;
+        setup?: { local_storage?: Record<string, string> };
+      }>;
+    };
+    const savedState = parsed.scenarios.find(
+      (scenario) => scenario.variant === "training-victory",
+    )?.setup?.local_storage?.["halcyon.save.v1"];
+
+    expect(
+      savedState,
+      "training-victory must seed the persisted campaign state",
+    ).toBeTypeOf("string");
+    expect(JSON.parse(savedState ?? "null")).toEqual({
+      chapter: 6,
+      chapterDone: {
+        1: true,
+        2: true,
+        3: true,
+        4: true,
+        5: true,
+        6: true,
+      },
+    });
   });
 });

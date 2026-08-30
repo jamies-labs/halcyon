@@ -1,14 +1,6 @@
 # HALCYON design contract
 
-<!-- keelen-design-contract
-status: "active"
-revision: 1
-tokens_file: "src/styles.css"
-shell_files:
-  - "src/main.ts"
-component_roots:
-  - "src/main.ts"
--->
+<!-- keelen-design-contract {"schema":1,"status":"active","revision":1,"tokens_file":"src/styles.css","shell_files":["src/main.ts"],"component_roots":["src/main.ts"]} -->
 
 ## Product brief
 
