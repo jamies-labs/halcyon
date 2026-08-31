@@ -156,6 +156,7 @@ window.halcyonSim = {
   invoke: (name: string, args?: unknown) =>
     registry.invoke(name, args ?? {}, "sim"),
   listTools: () => registry.listTools().map((tool) => tool.name),
+  inspectTools: () => registry.describeTools(),
   getState: () => store.get(),
   goto: (chapter: ChapterId) => selectChapter(store, chapter, simulatorSession),
 };
@@ -165,6 +166,7 @@ declare global {
     halcyonSim: {
       invoke: (name: string, args?: unknown) => Promise<unknown>;
       listTools: () => string[];
+      inspectTools: () => import("./webmcp/registry").ToolContract[];
       getState: () => ReturnType<Store["get"]>;
       goto: (chapter: ChapterId) => void;
     };

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { recoverDecoderFromToolResults } from "./commsRecovery";
 
 type Invocation = {
   outcome: {
@@ -148,15 +149,21 @@ async function alignAndDecode(page: Page): Promise<void> {
     ).outcome.ok,
   ).toBe(true);
   await page.waitForTimeout(700);
-  expect(
-    (await invoke(page, "tune_decoder", { offset_khz: -18 })).outcome.ok,
-  ).toBe(true);
-  expect((await invoke(page, "decode_reply")).outcome.ok).toBe(true);
+  const recovery = await recoverDecoderFromToolResults(page, (name, args) =>
+    invoke(page, name, args),
+  );
+  expect(recovery.decoded.outcome.data).toMatchObject({
+    decoded: { jump_vector: JUMP_VECTOR },
+  });
   await expect
     .poll(() =>
       page.evaluate(() => window.halcyonSim.getState().chapterDone[4]),
     )
     .toBe(true);
+  const visibleText = await page.locator("body").textContent();
+  expect(visibleText).not.toContain("0.42");
+  expect(visibleText).not.toContain("-1.07");
+  expect(visibleText).not.toContain("3.14");
 }
 
 async function purgeDrive(page: Page): Promise<Invocation> {

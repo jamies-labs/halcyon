@@ -280,6 +280,51 @@ describe("ToolRegistry", () => {
     ]);
   });
 
+  it("describes live tool contracts without exposing executable implementations", () => {
+    const execute = vi.fn(() => ({ ok: true as const, data: "executed" }));
+    const registry = new ToolRegistry(null, () => {});
+    registry.setTools([
+      okTool("tune_decoder", {
+        description: "Compare checksum_quality after each schema-valid offset.",
+        inputSchema: {
+          type: "object",
+          required: ["offset_khz"],
+          additionalProperties: false,
+          properties: {
+            offset_khz: { type: "integer", minimum: -50, maximum: 50 },
+          },
+        },
+        execute,
+      }),
+    ]);
+
+    const contracts = (
+      registry as ToolRegistry & {
+        describeTools?: () => unknown[];
+      }
+    ).describeTools?.();
+
+    expect(contracts).toEqual([
+      {
+        name: "tune_decoder",
+        description: "Compare checksum_quality after each schema-valid offset.",
+        inputSchema: {
+          type: "object",
+          required: ["offset_khz"],
+          additionalProperties: false,
+          properties: {
+            offset_khz: { type: "integer", minimum: -50, maximum: 50 },
+          },
+        },
+        readOnly: false,
+      },
+    ]);
+    expect(
+      execute,
+      "contract inspection must not execute the tool",
+    ).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid arguments before rate limiting and never executes the tool", async () => {
     const execute = vi.fn(() => ({ ok: true as const, data: "executed" }));
     const registry = new ToolRegistry(null, (record) => records.push(record));

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { recoverDecoderFromToolResults } from "./commsRecovery";
 
 type Invocation = {
   outcome: {
@@ -174,21 +175,29 @@ test("Antenna tool descriptions declare the agent and crew roles", async ({
 
   await alignDish(page);
   const registered = await descriptions();
+  const dynamicDescriptions = registered.filter(({ name }) =>
+    ["send_distress", "tune_decoder", "decode_reply"].includes(name),
+  );
+  expect(dynamicDescriptions).toHaveLength(3);
   expect(
-    registered.find(({ name }) => name === "send_distress")?.description,
-  ).toBe(
-    "HALCYON operates the distress transmitter only after the crew's physical antenna alignment locks comms; the crew alone aligns the dish.",
+    dynamicDescriptions.find(({ name }) => name === "send_distress")
+      ?.description,
+  ).toContain(
+    "send_distress, wait for the reply, tune_decoder, then decode_reply",
   );
   expect(
-    registered.find(({ name }) => name === "tune_decoder")?.description,
-  ).toBe(
-    "HALCYON operates the decoder after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. Set the decoder frequency offset in kHz (-50 to 50). Returns checksum_quality (0 to 1); the reply decodes at 0.95 or better.",
-  );
+    dynamicDescriptions.find(({ name }) => name === "tune_decoder")
+      ?.description,
+  ).toContain("checksum_quality");
   expect(
-    registered.find(({ name }) => name === "decode_reply")?.description,
-  ).toBe(
-    "HALCYON operates reply decoding after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. Below 0.95 checksum_quality the text is garbled.",
-  );
+    dynamicDescriptions.find(({ name }) => name === "decode_reply")
+      ?.description,
+  ).toContain("Wait for a reply, tune_decoder, then decode_reply");
+  for (const { description } of dynamicDescriptions) {
+    expect(description).not.toContain("-18");
+    expect(description).not.toContain("137");
+    expect(description).not.toContain("42");
+  }
 });
 
 test("signal meter returns the crew alignment handoff", async ({ page }) => {
@@ -316,47 +325,63 @@ test("Antenna exposes a crew-only dish and unlocks dynamic tools", async ({
     );
 });
 
-test("decode before any reply coaches NO_REPLY_YET; tune loop reaches the vector", async ({
+test("comms recovery contracts require a reply before tuning", async ({
   page,
 }) => {
   await alignDish(page);
-  expect((await invoke(page, "decode_reply")).outcome.code).toBe(
-    "NO_REPLY_YET",
-  );
+  for (const [name, args] of [
+    ["tune_decoder", { offset_khz: -50 }],
+    ["decode_reply", {}],
+  ] as const) {
+    const premature = await invoke(page, name, args);
+    expect(premature.outcome.code, `${name} must wait for a reply`).toBe(
+      "NO_REPLY_YET",
+    );
+    expect(premature.outcome.detail).toBe(
+      "The receiver holds no transmission.",
+    );
+    expect(premature.outcome.data).toBeUndefined();
+  }
 
+  const sent = await invoke(page, "send_distress", {
+    message: "ISV Halcyon requesting vector home.",
+  });
+  expect(sent.outcome.data?.next).toBe(
+    "Wait for the reply, then call tune_decoder and compare checksum_quality before decode_reply.",
+  );
+  await page.waitForTimeout(700);
+
+  const tuned = await invoke(page, "tune_decoder", { offset_khz: -50 });
+  expect(tuned.outcome.data).toEqual({
+    offset_khz: -50,
+    checksum_quality: 0.36,
+  });
+  const garbled = await invoke(page, "decode_reply");
+  expect(garbled.outcome.data?.checksum_quality).toBe(0.36);
+  expect(garbled.outcome.data?.text).toMatch(/[#@%&$!?~^*]/);
+  expect(garbled.outcome.data?.hint).toContain("another offset_khz");
   expect(
-    (
-      await invoke(page, "send_distress", {
-        message: "ISV Halcyon requesting vector home.",
-      })
-    ).outcome.ok,
+    await page.evaluate(() => window.halcyonSim.getState().chapterDone[4]),
+  ).toBe(false);
+});
+
+test("normal agent recovers decoder from tool results", async ({ page }) => {
+  await alignDish(page);
+  expect(
+    (await invoke(page, "send_distress", { message: "Requesting rescue." }))
+      .outcome.ok,
   ).toBe(true);
   await page.waitForTimeout(700);
 
-  const garbled = await invoke(page, "decode_reply");
-  expect(garbled.outcome.data?.checksum_quality).toBeLessThan(0.95);
-  expect(
-    (await invoke(page, "tune_decoder", { offset_khz: -18 })).outcome.data,
-  ).toEqual({
-    offset_khz: -18,
-    checksum_quality: 1,
-  });
-
-  const decoded = await invoke(page, "decode_reply");
-  expect(decoded.outcome.data).toMatchObject({
-    checksum_quality: 1,
+  const recovery = await recoverDecoderFromToolResults(page, (name, args) =>
+    invoke(page, name, args),
+  );
+  expect(recovery.decoded.outcome.data).toMatchObject({
     decoded: { jump_vector: JUMP_VECTOR },
   });
   await expect
-    .poll(() =>
-      page.evaluate(() => window.halcyonSim.getState().chapterDone[4]),
-    )
-    .toBe(true);
-  expect(
-    await page.evaluate(
-      () => window.halcyonSim.getState().flags["comms.jump_vector"],
-    ),
-  ).toEqual(JUMP_VECTOR);
+    .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
+    .toBe(5);
   const visibleText = await page.locator("body").textContent();
   expect(visibleText).not.toContain("0.42");
   expect(visibleText).not.toContain("-1.07");
@@ -374,13 +399,21 @@ test("comms tools reject malformed messages and every decoder schema boundary", 
       `${JSON.stringify(args)} must be rejected by the send_distress schema`,
     ).toBe("INVALID_ARGS");
   }
+  expect(
+    (
+      await invoke(page, "send_distress", {
+        message: "Checking decoder bounds.",
+      })
+    ).outcome.ok,
+  ).toBe(true);
+  await page.waitForTimeout(700);
   for (const offset_khz of [-50, 50]) {
     expect(
       (await invoke(page, "tune_decoder", { offset_khz })).outcome.ok,
       `${offset_khz} must remain within the decoder range`,
     ).toBe(true);
   }
-  for (const offset_khz of [-51, 51, -18.5]) {
+  for (const offset_khz of [-51, 51, -49.5]) {
     expect(
       (await invoke(page, "tune_decoder", { offset_khz })).outcome.code,
       `${offset_khz} must be rejected by the decoder schema`,

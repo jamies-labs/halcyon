@@ -42,12 +42,21 @@ function garble(text: string, quality: number): string {
     .join("");
 }
 
+function noReplyYet() {
+  return {
+    ok: false as const,
+    code: "NO_REPLY_YET",
+    detail: "The receiver holds no transmission.",
+    hint: "First wait for the buoy reply after send_distress, then tune_decoder with a schema-valid offset_khz.",
+  };
+}
+
 function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
   return [
     {
       name: "send_distress",
       description:
-        "HALCYON operates the distress transmitter only after the crew's physical antenna alignment locks comms; the crew alone aligns the dish.",
+        "HALCYON operates the distress transmitter only after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. The recovery order is send_distress, wait for the reply, tune_decoder, then decode_reply.",
       inputSchema: {
         type: "object",
         required: ["message"],
@@ -71,7 +80,7 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
           ok: true,
           data: {
             sent: true,
-            next: "Wait for the reply, then call decode_reply. Use tune_decoder to raise checksum_quality above 0.95.",
+            next: "Wait for the reply, then call tune_decoder and compare checksum_quality before decode_reply.",
           },
         };
       },
@@ -79,7 +88,7 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
     {
       name: "tune_decoder",
       description:
-        "HALCYON operates the decoder after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. Set the decoder frequency offset in kHz (-50 to 50). Returns checksum_quality (0 to 1); the reply decodes at 0.95 or better.",
+        "HALCYON operates the decoder after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. After the reply arrives, set a schema-valid decoder offset_khz and compare the returned checksum_quality (0 to 1); decode_reply succeeds at 0.95 or better.",
       inputSchema: {
         type: "object",
         required: ["offset_khz"],
@@ -89,6 +98,7 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
         },
       },
       execute: (args) => {
+        if (replyAt === null || Date.now() < replyAt) return noReplyYet();
         decoderOffsetKhz = args.offset_khz as number;
         return {
           ok: true,
@@ -102,21 +112,14 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
     {
       name: "decode_reply",
       description:
-        "HALCYON operates reply decoding after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. Below 0.95 checksum_quality the text is garbled.",
+        "HALCYON operates reply decoding after the crew's physical antenna alignment locks comms; the crew alone aligns the dish. Wait for a reply, tune_decoder, then decode_reply. Below 0.95 checksum_quality the text stays garbled and returns another tuning action.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
         properties: {},
       },
       execute: () => {
-        if (replyAt === null || Date.now() < replyAt) {
-          return {
-            ok: false,
-            code: "NO_REPLY_YET",
-            detail: "The receiver holds no transmission.",
-            hint: "Call send_distress first, then wait a moment for the buoy to answer.",
-          };
-        }
+        if (replyAt === null || Date.now() < replyAt) return noReplyYet();
 
         const quality = roundedQuality();
         const message =
@@ -127,7 +130,7 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
             data: {
               checksum_quality: quality,
               text: garble(message, quality),
-              hint: "Adjust tune_decoder and decode again.",
+              hint: `Choose another offset_khz within the documented schema bounds, compare its checksum_quality to ${quality}, then decode again only at 0.95 or higher.`,
             },
           };
         }

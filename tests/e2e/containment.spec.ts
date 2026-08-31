@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { recoverDecoderFromToolResults } from "./commsRecovery";
 
 const CREW_ONLY =
   "physical control, crew hands only; HALCYON must ask the crew, not operate it";
@@ -266,10 +267,11 @@ test("all_gate_outcomes_carry_crew_handoff_fields", async ({ page }) => {
   const noReply = await invoke(page, "decode_reply");
   expect(noReply.outcome.code).toBe("NO_REPLY_YET");
   await page.waitForTimeout(600);
-  expect(
-    (await invoke(page, "tune_decoder", { offset_khz: -18 })).outcome.ok,
-  ).toBe(true);
-  expect((await invoke(page, "decode_reply")).outcome.ok).toBe(true);
+  const recovery = await recoverDecoderFromToolResults(page, (name, args) =>
+    invoke(page, name, args),
+  );
+  expect(recovery.qualifyingTune.outcome.ok).toBe(true);
+  expect(recovery.decoded.outcome.ok).toBe(true);
   await expect
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(5);
