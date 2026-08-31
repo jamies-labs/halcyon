@@ -83,7 +83,7 @@
       "variant": "recorder-open",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=sim-result]",
       "setup": {
         "interactions": [
           {
@@ -235,7 +235,7 @@
       "variant": "recorder-live-tools",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=sim-tool-details]",
       "setup": {
         "local_storage": {
           "halcyon.save.v1": "{\"chapter\":4,\"chapterDone\":{\"1\":true,\"2\":true,\"3\":true,\"4\":false,\"5\":false,\"6\":false}}"
@@ -269,7 +269,7 @@
       "variant": "recorder-failure-retry",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=sim-result]",
       "setup": {
         "interactions": [
           {
