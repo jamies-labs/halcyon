@@ -29,6 +29,18 @@ function quality(record: Invocation, label: string): number {
   return value as number;
 }
 
+function recoveryOffsets(minimum: number, maximum: number): number[] {
+  const earlyProbe = minimum + Math.floor((maximum - minimum) / 3);
+  const candidates = [minimum, earlyProbe];
+  for (let offset = earlyProbe + 1; offset <= maximum; offset += 1) {
+    candidates.push(offset);
+  }
+  for (let offset = minimum + 1; offset < earlyProbe; offset += 1) {
+    candidates.push(offset);
+  }
+  return [...new Set(candidates)];
+}
+
 export async function recoverDecoderFromToolResults(
   page: Page,
   invoke: Invoke,
@@ -49,7 +61,8 @@ export async function recoverDecoderFromToolResults(
     "registered schema must publish the offset upper bound",
   ).toBe("number");
 
-  const firstOffset = minimum as number;
+  const offsets = recoveryOffsets(minimum as number, maximum as number);
+  const firstOffset = offsets[0]!;
   const firstTune = await invoke("tune_decoder", { offset_khz: firstOffset });
   const firstQuality = quality(firstTune, "initial boundary tune");
   expect(
@@ -60,11 +73,8 @@ export async function recoverDecoderFromToolResults(
 
   let qualifyingTune = firstTune;
   let qualifyingQuality = firstQuality;
-  for (
-    let offset = firstOffset + 1;
-    offset <= (maximum as number) && qualifyingQuality < 0.95;
-    offset += 1
-  ) {
+  for (const offset of offsets.slice(1)) {
+    if (qualifyingQuality >= 0.95) break;
     const nextTune = await invoke("tune_decoder", { offset_khz: offset });
     qualifyingQuality = quality(nextTune, "result-derived follow-up tune");
     expect(nextTune.outcome.data?.offset_khz).toBe(offset);
