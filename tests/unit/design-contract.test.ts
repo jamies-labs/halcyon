@@ -216,9 +216,9 @@ describe("design contract activation", () => {
       recorder,
       "recorder interaction scenario must be present",
     ).toBeDefined();
-    expect(recorder?.ready_selector).toBe("[data-testid=recorder-toggle]");
+    expect(recorder?.ready_selector).toBe("[data-testid=sim-result]");
     expect(recorder?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-panel]",
+      "[data-testid=sim-tool-details]",
     );
   });
 
@@ -257,7 +257,6 @@ describe("design contract activation", () => {
       expect(scenario?.state).toBe("resolved");
       expect(scenario?.theme).toBe("light");
       expect(scenario?.viewports).toEqual([375, 768, 1280]);
-      expect(scenario?.ready_selector).toBe("[data-testid=recorder-toggle]");
       expect(scenario?.covers.changedPaths).toEqual(
         expect.arrayContaining(["src/ui/recorder.ts", "src/styles.css"]),
       );
@@ -277,12 +276,14 @@ describe("design contract activation", () => {
     expect(closed?.setup?.settled_selector).toBe(
       "[data-testid=recorder-toggle]",
     );
+    expect(closed?.ready_selector).toBe("[data-testid=recorder-toggle]");
     expect(opened?.setup?.interactions).toEqual([
       { action: "click", selector: "[data-testid=recorder-toggle]" },
     ]);
     expect(opened?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-panel]",
+      "[data-testid=sim-tool-details]",
     );
+    expect(opened?.ready_selector).toBe("[data-testid=sim-result]");
   });
 
   it("declares closed live-tool and retry evidence for the recorder outcomes", () => {
@@ -320,7 +321,6 @@ describe("design contract activation", () => {
       expect(scenario?.state).toBe("resolved");
       expect(scenario?.theme).toBe("light");
       expect(scenario?.viewports).toEqual([375, 768, 1280]);
-      expect(scenario?.ready_selector).toBe("[data-testid=recorder-toggle]");
       expect(scenario?.setup?.interactions).toBeDefined();
       expect(scenario?.setup?.settled_selector).toBeDefined();
       expect(scenario?.covers.changedPaths).toContain("src/ui/recorder.ts");
@@ -333,13 +333,69 @@ describe("design contract activation", () => {
     }
 
     expect(liveTools?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-panel]",
+      "[data-testid=sim-tool-details]",
     );
-    expect(failures?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-log]",
-    );
+    expect(liveTools?.ready_selector).toBe("[data-testid=sim-tool-details]");
+    expect(failures?.setup?.settled_selector).toBe("[data-testid=sim-result]");
+    expect(failures?.ready_selector).toBe("[data-testid=sim-result]");
     expect(liveTools?.covers.changedPaths).toContain("src/webmcp/registry.ts");
     expect(failures?.covers.changedPaths).toContain("src/ui/speaker.ts");
+  });
+
+  it("declares closed simulator detail and outcome evidence", () => {
+    const review = reviewFiles["/ui-review.json"];
+    expect(review, "ui-review.json must be present").toBeTypeOf("string");
+
+    const parsed = JSON.parse(review!) as {
+      scenarios: Array<{
+        route: string;
+        state: string;
+        variant?: string;
+        ready_selector: string;
+        setup?: {
+          interactions?: Array<{ action: string; selector: string }>;
+          settled_selector?: string;
+        };
+        covers: { changedPaths: string[]; requirementKeys: unknown };
+      }>;
+    };
+    const recorderOpen = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-open",
+    );
+    const liveTools = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-live-tools",
+    );
+    const failures = parsed.scenarios.find(
+      (scenario) => scenario.variant === "recorder-failure-retry",
+    );
+
+    for (const scenario of [recorderOpen, liveTools, failures]) {
+      expect(
+        scenario,
+        "each recorder evidence variant must remain present",
+      ).toBeDefined();
+      expect(scenario?.route).toBe("/");
+      expect(scenario?.state).toBe("resolved");
+      expect(scenario?.setup?.interactions).toBeDefined();
+      expect(scenario?.covers.changedPaths).toContain("src/ui/recorder.ts");
+      const requirementKeys = scenario?.covers.requirementKeys;
+      expect(Array.isArray(requirementKeys)).toBe(true);
+      if (!Array.isArray(requirementKeys)) {
+        throw new Error("recorder evidence requirement keys must be an array");
+      }
+      for (const key of requirementKeys) expect(key).toMatch(/^AC\d+/);
+    }
+
+    expect(recorderOpen?.setup?.settled_selector).toBe(
+      "[data-testid=sim-tool-details]",
+    );
+    expect(recorderOpen?.ready_selector).toBe("[data-testid=sim-result]");
+    expect(liveTools?.setup?.settled_selector).toBe(
+      "[data-testid=sim-tool-details]",
+    );
+    expect(liveTools?.ready_selector).toBe("[data-testid=sim-tool-details]");
+    expect(failures?.setup?.settled_selector).toBe("[data-testid=sim-result]");
+    expect(failures?.ready_selector).toBe("[data-testid=sim-result]");
   });
 
   it("wires the live shell and E2E touch context required by the recorder dock", () => {
