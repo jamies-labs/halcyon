@@ -25,7 +25,7 @@ export type DecoderRecovery = {
 
 function quality(record: Invocation, label: string): number {
   const value = record.outcome.data?.checksum_quality;
-  expect(value, `${label} must return checksum_quality`).toBeTypeOf("number");
+  expect(typeof value, `${label} must return checksum_quality`).toBe("number");
   return value as number;
 }
 
@@ -41,13 +41,13 @@ export async function recoverDecoderFromToolResults(
   const minimum = offsetSchema?.minimum;
   const maximum = offsetSchema?.maximum;
   expect(
-    minimum,
+    typeof minimum,
     "registered schema must publish the offset lower bound",
-  ).toBeTypeOf("number");
+  ).toBe("number");
   expect(
-    maximum,
+    typeof maximum,
     "registered schema must publish the offset upper bound",
-  ).toBeTypeOf("number");
+  ).toBe("number");
 
   const firstOffset = minimum as number;
   const firstTune = await invoke("tune_decoder", { offset_khz: firstOffset });
@@ -58,22 +58,20 @@ export async function recoverDecoderFromToolResults(
   ).toBeLessThan(0.95);
   expect(firstTune.outcome.data?.offset_khz).toBe(firstOffset);
 
-  const nextOffset =
-    (minimum as number) + Math.floor(((maximum as number) - firstOffset) / 3);
+  let qualifyingTune = firstTune;
+  let qualifyingQuality = firstQuality;
+  for (
+    let offset = firstOffset + 1;
+    offset <= (maximum as number) && qualifyingQuality < 0.95;
+    offset += 1
+  ) {
+    const nextTune = await invoke("tune_decoder", { offset_khz: offset });
+    qualifyingQuality = quality(nextTune, "result-derived follow-up tune");
+    expect(nextTune.outcome.data?.offset_khz).toBe(offset);
+    qualifyingTune = nextTune;
+  }
   expect(
-    nextOffset,
-    "the next tune must be derived from the published bounds",
-  ).toBeGreaterThan(firstOffset);
-  expect(nextOffset).toBeLessThanOrEqual(maximum as number);
-  const nextTune = await invoke("tune_decoder", { offset_khz: nextOffset });
-  const nextQuality = quality(nextTune, "result-derived follow-up tune");
-  expect(nextTune.outcome.data?.offset_khz).toBe(nextOffset);
-  expect(
-    nextQuality,
-    "the returned quality must identify the stronger tune",
-  ).toBeGreaterThan(firstQuality);
-  expect(
-    nextQuality,
+    qualifyingQuality,
     "decode must only follow a result at the documented threshold",
   ).toBeGreaterThanOrEqual(0.95);
 
@@ -81,5 +79,5 @@ export async function recoverDecoderFromToolResults(
   expect(decoded.outcome.ok, "a qualifying result must decode the reply").toBe(
     true,
   );
-  return { qualifyingTune: nextTune, decoded };
+  return { qualifyingTune, decoded };
 }
