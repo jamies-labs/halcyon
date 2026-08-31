@@ -34,7 +34,7 @@
       "variant": "chapter-one-contact",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=breaker-handle]",
+      "ready_selector": "[data-testid=crew-action-ch1]",
       "setup": {
         "interactions": [
           {
@@ -42,13 +42,14 @@
             "selector": "[data-testid=gate-start]"
           }
         ],
-        "settled_selector": "[data-testid=breaker-handle]"
+        "settled_selector": "[data-testid=crew-action-ch1]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
         "changedPaths": [
           "src/game/chapters/ch1_contact.ts",
           "src/game/chapters/index.ts",
+          "src/game/timings.ts",
           "src/styles.css"
         ],
         "triggerOnlyPaths": ["src/game/globalTools.ts"]

@@ -293,9 +293,45 @@ dd {
 
 .contact-scene {
   display: grid;
+  gap: var(--space-3);
   justify-items: center;
   max-width: var(--size-content);
   padding-block: var(--space-3);
+}
+
+.crew-action {
+  display: grid;
+  gap: var(--space-1);
+  width: min(100%, var(--size-breaker-scene));
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-accent);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface-raised);
+}
+
+.crew-action h2,
+.crew-action p {
+  margin: 0;
+}
+
+.crew-action h2,
+.crew-action-next {
+  color: var(--color-accent-strong);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-gate-hint);
+  letter-spacing: 0.08em;
+}
+
+.crew-action p {
+  line-height: 1.5;
+}
+
+.crew-action-status {
+  padding-top: var(--space-1);
+  border-top: var(--border-width) solid var(--color-border);
+  color: var(--color-muted);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-gate-hint);
 }
 
 .breaker-scene {
@@ -817,6 +853,11 @@ body::after {
 
   .stage {
     padding: var(--space-4);
+  }
+
+  .contact-scene {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
   }
 
   .shell:has(.recorder-panel:not([hidden])) {

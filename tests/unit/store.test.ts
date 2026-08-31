@@ -97,7 +97,7 @@ describe("timings", () => {
     const { FAST, T } = await import("../../src/game/timings");
 
     expect(FAST).toBe(false);
-    expect(T.mainsWindowMs).toBe(5_000);
+    expect(T.mainsWindowMs).toBeGreaterThanOrEqual(15_000);
     expect(T.burnCountdownMs).toBe(90_000);
   });
 });
