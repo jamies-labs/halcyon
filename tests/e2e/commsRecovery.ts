@@ -34,7 +34,7 @@ export async function recoverDecoderFromToolResults(
   invoke: Invoke,
 ): Promise<DecoderRecovery> {
   const tools = (await page.evaluate(() =>
-    window.halcyonSim.listTools(),
+    window.halcyonSim.inspectTools(),
   )) as ToolDefinition[];
   const offsetSchema = tools.find((tool) => tool.name === "tune_decoder")
     ?.inputSchema.properties?.offset_khz;

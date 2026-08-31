@@ -8,6 +8,13 @@ import type {
 
 export type { HostRegistration, ModelContextHost } from "./shim";
 
+export interface ToolContract {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  readOnly: boolean;
+}
+
 interface LiveTool {
   def: ToolDef;
   registration: HostRegistration | null;
@@ -26,6 +33,17 @@ export class ToolRegistry {
 
   listTools(): ToolDef[] {
     return [...this.live.values()].map(({ def }) => def);
+  }
+
+  describeTools(): ToolContract[] {
+    return this.listTools().map(
+      ({ name, description, inputSchema, readOnly }) => ({
+        name,
+        description,
+        inputSchema: structuredClone(inputSchema),
+        readOnly: readOnly === true,
+      }),
+    );
   }
 
   subscribe(listener: (tools: ToolDef[]) => void): () => void {
