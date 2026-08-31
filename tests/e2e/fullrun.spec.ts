@@ -149,10 +149,10 @@ async function alignAndDecode(page: Page): Promise<void> {
     ).outcome.ok,
   ).toBe(true);
   await page.waitForTimeout(700);
-  const decoded = await recoverDecoderFromToolResults(page, (name, args) =>
+  const recovery = await recoverDecoderFromToolResults(page, (name, args) =>
     invoke(page, name, args),
   );
-  expect(decoded.outcome.data).toMatchObject({
+  expect(recovery.decoded.outcome.data).toMatchObject({
     decoded: { jump_vector: JUMP_VECTOR },
   });
   await expect

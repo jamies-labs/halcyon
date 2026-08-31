@@ -18,6 +18,11 @@ type ToolDefinition = {
 
 type Invoke = (name: string, args?: unknown) => Promise<Invocation>;
 
+export type DecoderRecovery = {
+  qualifyingTune: Invocation;
+  decoded: Invocation;
+};
+
 function quality(record: Invocation, label: string): number {
   const value = record.outcome.data?.checksum_quality;
   expect(value, `${label} must return checksum_quality`).toBeTypeOf("number");
@@ -27,7 +32,7 @@ function quality(record: Invocation, label: string): number {
 export async function recoverDecoderFromToolResults(
   page: Page,
   invoke: Invoke,
-): Promise<Invocation> {
+): Promise<DecoderRecovery> {
   const tools = (await page.evaluate(() =>
     window.halcyonSim.listTools(),
   )) as ToolDefinition[];
@@ -76,5 +81,5 @@ export async function recoverDecoderFromToolResults(
   expect(decoded.outcome.ok, "a qualifying result must decode the reply").toBe(
     true,
   );
-  return decoded;
+  return { qualifyingTune: nextTune, decoded };
 }

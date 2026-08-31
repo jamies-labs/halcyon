@@ -267,10 +267,11 @@ test("all_gate_outcomes_carry_crew_handoff_fields", async ({ page }) => {
   const noReply = await invoke(page, "decode_reply");
   expect(noReply.outcome.code).toBe("NO_REPLY_YET");
   await page.waitForTimeout(600);
-  const decoded = await recoverDecoderFromToolResults(page, (name, args) =>
+  const recovery = await recoverDecoderFromToolResults(page, (name, args) =>
     invoke(page, name, args),
   );
-  expect(decoded.outcome.ok).toBe(true);
+  expect(recovery.qualifyingTune.outcome.ok).toBe(true);
+  expect(recovery.decoded.outcome.ok).toBe(true);
   await expect
     .poll(() => page.evaluate(() => window.halcyonSim.getState().chapter))
     .toBe(5);
