@@ -172,7 +172,7 @@
         "settled_selector": "[data-testid=dish-readout]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
         "changedPaths": ["src/game/chapters/ch4_antenna.ts"],
         "triggerOnlyPaths": []
       }
