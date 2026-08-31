@@ -855,6 +855,11 @@ body::after {
     padding: var(--space-4);
   }
 
+  .contact-scene {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+  }
+
   .shell:has(.recorder-panel:not([hidden])) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(
