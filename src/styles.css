@@ -823,6 +823,82 @@ body::after {
   gap: var(--space-1);
 }
 
+.sim-tool-details,
+.sim-result {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+}
+
+.sim-tool-name,
+.sim-description,
+.sim-contract-note,
+.sim-empty {
+  margin: 0;
+}
+
+.sim-tool-name,
+.sim-subheading,
+.sim-result-field dt,
+.sim-result-data dt {
+  color: var(--color-accent);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sim-subheading {
+  margin: 0;
+}
+
+.sim-description,
+.sim-contract-note,
+.sim-empty,
+.sim-result-field dd,
+.sim-result-data dd {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.sim-contract-note {
+  color: var(--color-focus);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+}
+
+.sim-schema,
+.sim-result-data pre {
+  max-width: 100%;
+  max-height: 12rem;
+  margin: 0;
+  overflow: auto;
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sim-result-fields {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.sim-result-field,
+.sim-result-data {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
 .sim-form select,
 .sim-args {
   width: 100%;

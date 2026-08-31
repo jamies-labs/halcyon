@@ -1,4 +1,4 @@
-import type { InvokeRecord } from "../webmcp/types";
+import type { InvokeRecord, ToolDef, ToolOutcome } from "../webmcp/types";
 import type { ToolRegistry } from "../webmcp/registry";
 import { el } from "./dom";
 import { failureSignature, outcomeSummary } from "./outcome";
@@ -78,6 +78,160 @@ export class Recorder {
   }
 }
 
+type Schema = Record<string, unknown>;
+const AGENT_ONLY_RESULT_FIELDS = new Set(["agent_only", "jump_vector"]);
+
+function exampleValue(schema: Schema): unknown {
+  if (Array.isArray(schema.enum) && schema.enum.length > 0) {
+    return schema.enum.includes("s2") ? "s2" : schema.enum[0];
+  }
+
+  switch (schema.type) {
+    case "object": {
+      const properties = (schema.properties ?? {}) as Record<string, Schema>;
+      const required = (schema.required ?? Object.keys(properties)) as string[];
+      return Object.fromEntries(
+        required
+          .filter((name) => name in properties)
+          .map((name) => [name, exampleValue(properties[name]!)]),
+      );
+    }
+    case "array": {
+      const count = typeof schema.minItems === "number" ? schema.minItems : 0;
+      return Array.from({ length: count }, () =>
+        exampleValue((schema.items ?? {}) as Schema),
+      );
+    }
+    case "integer":
+    case "number":
+      return typeof schema.minimum === "number" ? schema.minimum : 0;
+    case "boolean":
+      return false;
+    case "string": {
+      const minimum =
+        typeof schema.minLength === "number" ? schema.minLength : 0;
+      const maximum =
+        typeof schema.maxLength === "number" ? schema.maxLength : undefined;
+      const length = Math.min(Math.max(1, minimum), maximum ?? Infinity);
+      return "x".repeat(length);
+    }
+    default:
+      return "";
+  }
+}
+
+function editableExample(tool: ToolDef): string {
+  return JSON.stringify(exampleValue(tool.inputSchema));
+}
+
+function recorderSafeData(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(recorderSafeData);
+  if (value === null || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !AGENT_ONLY_RESULT_FIELDS.has(key))
+      .map(([key, child]) => [key, recorderSafeData(child)]),
+  );
+}
+
+function renderField(label: string, value: string): HTMLElement {
+  return el(
+    "div",
+    { class: "sim-result-field" },
+    el("dt", {}, label),
+    el("dd", {}, value),
+  );
+}
+
+function renderDetails(
+  tool: ToolDef | undefined,
+  target: HTMLElement,
+  args: HTMLTextAreaElement,
+  resetExample: boolean,
+): void {
+  if (!tool) {
+    target.replaceChildren(
+      el(
+        "p",
+        { class: "sim-empty" },
+        "No live tools are registered for this chapter.",
+      ),
+    );
+    if (resetExample) args.value = "{}";
+    return;
+  }
+
+  if (resetExample) args.value = editableExample(tool);
+  const historicalContract =
+    tool.name === "flag_section"
+      ? el(
+          "p",
+          { class: "sim-contract-note" },
+          'Use section_id and priority. The historical inputs {"section":"S3"}, {"section":"S6"}, {"section":3}, and {"section":6} use the obsolete section field and are invalid.',
+        )
+      : null;
+  target.replaceChildren(
+    el("p", { class: "sim-tool-name" }, tool.name),
+    el("p", { class: "sim-description" }, tool.description),
+    el("h3", { class: "sim-subheading" }, "Input schema"),
+    el(
+      "pre",
+      { class: "sim-schema" },
+      JSON.stringify(tool.inputSchema, null, 2),
+    ),
+    ...(historicalContract ? [historicalContract] : []),
+  );
+}
+
+function renderResult(outcome: ToolOutcome, target: HTMLElement): void {
+  const fields: HTMLElement[] = [renderField("ok", `=${String(outcome.ok)}`)];
+  if (outcome.ok) {
+    fields.push(
+      renderField(
+        "state consequence",
+        outcome.state_consequence ??
+          "No state consequence reported by this tool.",
+      ),
+      el(
+        "div",
+        { class: "sim-result-data" },
+        el("dt", {}, "returned data"),
+        el(
+          "dd",
+          {},
+          el(
+            "pre",
+            {},
+            JSON.stringify(recorderSafeData(outcome.data), null, 2),
+          ),
+        ),
+      ),
+    );
+  } else {
+    fields.push(
+      renderField("code", outcome.code),
+      renderField("detail", outcome.detail),
+      renderField("hint", outcome.hint),
+    );
+  }
+  if (outcome.human_action)
+    fields.push(renderField("human action", outcome.human_action));
+  if (outcome.wait_for) fields.push(renderField("wait for", outcome.wait_for));
+  if (!outcome.ok) {
+    fields.push(
+      renderField(
+        "state consequence",
+        outcome.state_consequence ??
+          "No state change reported by this failed tool call.",
+      ),
+    );
+  }
+  target.replaceChildren(
+    el("h3", { class: "sim-subheading" }, "Latest outcome"),
+    el("dl", { class: "sim-result-fields" }, ...fields),
+  );
+}
+
 export function mountRecorderPanel(
   recorder: Recorder,
   registry: ToolRegistry,
@@ -95,14 +249,38 @@ export function mountRecorderPanel(
     "aria-label": "Tool arguments as JSON",
   });
   args.value = "{}";
+  const details = el("section", {
+    class: "sim-tool-details",
+    "data-testid": "sim-tool-details",
+    "aria-label": "Selected simulator tool details",
+  });
+  const result = el("section", {
+    class: "sim-result",
+    "data-testid": "sim-result",
+    "aria-label": "Latest simulator result",
+    "aria-live": "polite",
+  });
   const refresh = () => {
+    const selectedName = select.value;
+    const tools = registry.listTools();
     select.replaceChildren(
-      ...registry
-        .listTools()
-        .map((tool) => el("option", { value: tool.name }, tool.name)),
+      ...tools.map((tool) => el("option", { value: tool.name }, tool.name)),
     );
+    const selected =
+      tools.find((tool) => tool.name === selectedName) ?? tools[0];
+    select.value = selected?.name ?? "";
+    renderDetails(selected, details, args, selected?.name !== selectedName);
   };
   registry.subscribe(refresh);
+  refresh();
+  select.addEventListener("change", () => {
+    renderDetails(
+      registry.listTools().find((tool) => tool.name === select.value),
+      details,
+      args,
+      true,
+    );
+  });
   const invokeButton = el(
     "button",
     { class: "sim-invoke", type: "button", "data-testid": "sim-invoke" },
@@ -112,11 +290,24 @@ export function mountRecorderPanel(
     let parsed: unknown = {};
     try {
       parsed = JSON.parse(args.value || "{}");
-    } catch {
-      recorder.addHuman("Simulator rejected invalid JSON arguments.");
+    } catch (error) {
+      renderResult(
+        {
+          ok: false,
+          code: "INVALID_JSON",
+          detail:
+            error instanceof Error
+              ? error.message
+              : "Arguments are not valid JSON.",
+          hint: "Correct the JSON syntax, then invoke the tool again.",
+        },
+        result,
+      );
       return;
     }
-    void registry.invoke(select.value, parsed, "sim");
+    void registry.invoke(select.value, parsed, "sim").then((record) => {
+      renderResult(record.outcome, result);
+    });
   });
   const close = el(
     "button",
@@ -143,7 +334,8 @@ export function mountRecorderPanel(
       close,
     ),
     log,
-    el("div", { class: "sim-form" }, select, args, invokeButton),
+    el("div", { class: "sim-form" }, select, details, args, invokeButton),
+    result,
   );
   recorder.attachLog(log);
   const toggle = el(

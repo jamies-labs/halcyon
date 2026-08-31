@@ -6,6 +6,7 @@ export type ToolOutcome =
       data: unknown;
       human_action?: string;
       wait_for?: string;
+      state_consequence?: string;
     }
   | {
       ok: false;
@@ -15,6 +16,7 @@ export type ToolOutcome =
       retry_after_ms?: number;
       human_action?: string;
       wait_for?: string;
+      state_consequence?: string;
     };
 
 export interface ToolDef {

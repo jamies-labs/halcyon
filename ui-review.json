@@ -91,10 +91,10 @@
             "selector": "[data-testid=recorder-toggle]"
           }
         ],
-        "settled_selector": "[data-testid=recorder-panel]"
+        "settled_selector": "[data-testid=sim-tool-details]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC2"],
         "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
         "triggerOnlyPaths": []
       }
@@ -250,10 +250,10 @@
             "selector": "[data-testid=recorder-toggle]"
           }
         ],
-        "settled_selector": "[data-testid=recorder-panel]"
+        "settled_selector": "[data-testid=sim-tool-details]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC0", "AC3"],
         "changedPaths": [
           "src/main.ts",
           "src/ui/outcome.ts",
@@ -290,10 +290,10 @@
             "selector": "[data-testid=sim-invoke]"
           }
         ],
-        "settled_selector": "[data-testid=recorder-log]"
+        "settled_selector": "[data-testid=sim-result]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC1", "AC4"],
         "changedPaths": [
           "src/ui/outcome.ts",
           "src/ui/recorder.ts",
