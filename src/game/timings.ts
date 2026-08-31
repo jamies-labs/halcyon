@@ -2,7 +2,7 @@ export const FAST =
   new URLSearchParams(globalThis.location?.search ?? "").get("fast") === "1";
 
 export const T = {
-  mainsWindowMs: FAST ? 2_000 : 5_000,
+  mainsWindowMs: FAST ? 2_000 : 15_000,
   fuseSeatMs: FAST ? 150 : 600,
   powerStableMs: FAST ? 800 : 10_000,
   lockHoldMs: FAST ? 500 : 1_500,

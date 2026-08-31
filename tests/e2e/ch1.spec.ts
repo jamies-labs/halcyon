@@ -79,8 +79,20 @@ test("Contact exposes the crew-only breaker contract", async ({ page }) => {
   );
   await dragBreaker(page);
   await expect(page.getByTestId("speaker-panel")).toContainText(
-    "Crew hands energized the mains bus. HALCYON can now complete the tool-side boot handshake",
+    "Mains open. HALCYON, call boot_handshake now",
   );
+});
+
+test("contact crew action names the physical action report channel and next role", async ({
+  page,
+}) => {
+  await page.goto("/?fast=1&sim=1");
+
+  const action = page.getByTestId("crew-action-ch1");
+  await expect(action).toContainText("CREW ACTION");
+  await expect(action).toContainText("Pull and hold the master breaker");
+  await expect(action).toContainText("breaker up");
+  await expect(action).toContainText("HALCYON");
 });
 
 test("a breaker drag shorter than 300ms does not open the mains window", async ({
@@ -135,18 +147,67 @@ test("breaker plus a timely handshake boots the ship, advances, and registers gl
   expect(names).toContain("broadcast");
 });
 
-test("an expired mains window pops the breaker home and allows another attempt", async ({
+test("contact handoff reports progress expiry and the next role", async ({
   page,
 }) => {
   await page.goto("/?fast=1&sim=1");
 
   await dragBreaker(page);
+  await expect(page.getByTestId("ch1-mains-status")).toContainText(
+    "MAINS OPEN",
+  );
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "HALCYON, call boot_handshake now",
+  );
   await page.waitForTimeout(2_100);
   await expect(page.getByTestId("breaker-handle")).toHaveAttribute("y", "180");
+  await expect(page.getByTestId("ch1-mains-status")).toContainText(
+    "CREW: pull and hold the breaker again",
+  );
+  await expect(page.getByTestId("ch1-mains-status")).toContainText("HALCYON");
   const invocation = (await page.evaluate(() =>
     window.halcyonSim.invoke("boot_handshake", {}),
   )) as Invocation;
 
   expect(invocation.outcome.ok).toBe(false);
   expect(invocation.outcome.code).toBe("NO_MAINS_POWER");
+});
+
+test("normal-mode mains survives a conversational delay", async ({ page }) => {
+  await page.goto("/?sim=1");
+
+  await dragBreaker(page);
+  await page.waitForTimeout(6_000);
+  const invocation = (await page.evaluate(() =>
+    window.halcyonSim.invoke("boot_handshake", {}),
+  )) as Invocation;
+
+  expect(invocation.outcome.ok).toBe(true);
+  expect(await page.evaluate(() => window.halcyonSim.getState().booted)).toBe(
+    true,
+  );
+});
+
+test("contact has no alternate boot control", async ({ page }) => {
+  await page.goto("/?fast=1&sim=1");
+
+  await expect(
+    page.locator("section[aria-label='Master breaker'] button"),
+  ).toHaveCount(0);
+  const beforeDrag = (await page.evaluate(() =>
+    window.halcyonSim.invoke("boot_handshake", {}),
+  )) as Invocation;
+  expect(beforeDrag.outcome.code).toBe("NO_MAINS_POWER");
+  expect(await page.evaluate(() => window.halcyonSim.getState().booted)).toBe(
+    false,
+  );
+
+  await dragBreaker(page);
+  const afterDrag = (await page.evaluate(() =>
+    window.halcyonSim.invoke("boot_handshake", {}),
+  )) as Invocation;
+  expect(afterDrag.outcome.ok).toBe(true);
+  expect(await page.evaluate(() => window.halcyonSim.getState().booted)).toBe(
+    true,
+  );
 });

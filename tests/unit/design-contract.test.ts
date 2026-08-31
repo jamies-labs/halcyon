@@ -180,13 +180,16 @@ describe("design contract activation", () => {
     expect(activation?.covers?.changedPaths).toContain("src/styles.css");
   });
 
-  it("declares each post-interaction evidence selector required by the review contract", () => {
+  it("chapter one crew handoff evidence conforms", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
 
     const parsed = JSON.parse(review!) as {
       scenarios: Array<{
+        route: string;
+        state: string;
         variant?: string;
+        viewports: number[];
         ready_selector: string;
         setup?: { settled_selector?: string };
       }>;
@@ -200,11 +203,14 @@ describe("design contract activation", () => {
 
     expect(
       chapter,
-      "chapter post-start scenario must be present",
+      "chapter-one-contact scenario must be present",
     ).toBeDefined();
-    expect(chapter?.ready_selector).toBe("[data-testid=breaker-handle]");
+    expect(chapter?.route).toBe("/");
+    expect(chapter?.state).toBe("resolved");
+    expect(chapter?.viewports).toEqual([375, 1280]);
+    expect(chapter?.ready_selector).toBe("[data-testid=crew-action-ch1]");
     expect(chapter?.setup?.settled_selector).toBe(
-      "[data-testid=breaker-handle]",
+      "[data-testid=crew-action-ch1]",
     );
     expect(
       recorder,

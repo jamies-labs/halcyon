@@ -14,7 +14,10 @@ function clearMainsWindow(): void {
   popTimer = null;
 }
 
-function breakerScene(ctx: ChapterCtx): SVGSVGElement {
+function breakerScene(
+  ctx: ChapterCtx,
+  setMainsStatus: (message: string) => void,
+): SVGSVGElement {
   const scene = svgEl("svg", {
     class: "breaker-scene",
     viewBox: "0 0 320 260",
@@ -88,9 +91,12 @@ function breakerScene(ctx: ChapterCtx): SVGSVGElement {
     clearMainsWindow();
     mainsUntil = Date.now() + T.mainsWindowMs;
     handle.setAttribute("y", "56");
+    setMainsStatus(
+      "MAINS OPEN · HALCYON: call boot_handshake now. The crew's breaker is holding the bus live.",
+    );
     ctx.recorder.addHuman("Master breaker thrown; mains window open.");
     ctx.speaker.say(
-      "Crew hands energized the mains bus. HALCYON can now complete the tool-side boot handshake — the window is short.",
+      "Mains open. HALCYON, call boot_handshake now while the crew holds the breaker.",
       "urgent",
     );
     popTimer = setTimeout(() => {
@@ -98,9 +104,12 @@ function breakerScene(ctx: ChapterCtx): SVGSVGElement {
       clearMainsWindow();
       handle.setAttribute("y", "180");
       ctx.audio.alarm();
+      setMainsStatus(
+        "WINDOW EXPIRED · CREW: pull and hold the breaker again, report “breaker up” to HALCYON, then wait for the handshake.",
+      );
       ctx.recorder.addHuman("Mains window expired; breaker popped.");
       ctx.speaker.say(
-        "Window closed. Breaker popped back. Throw it again and I will be quicker.",
+        "Window closed. Crew, pull and hold the breaker again, then report breaker up. HALCYON will take the next handshake.",
         "dry",
       );
     }, T.mainsWindowMs);
@@ -178,11 +187,34 @@ export const ch1: Chapter = {
   },
   mount(ctx: ChapterCtx): void {
     clearMainsWindow();
+    const mainsStatus = el(
+      "p",
+      {
+        class: "crew-action-status",
+        "data-testid": "ch1-mains-status",
+        "aria-live": "polite",
+      },
+      "AWAITING CREW · Pull and hold the master breaker, then report “breaker up” in agent chat.",
+    );
     ctx.stage.append(
       el(
         "section",
         { class: "contact-scene", "aria-label": "Master breaker" },
-        breakerScene(ctx),
+        el(
+          "div",
+          { class: "crew-action", "data-testid": "crew-action-ch1" },
+          el("h2", {}, "CREW ACTION"),
+          el(
+            "p",
+            {},
+            "Pull and hold the master breaker up. Then report “breaker up” in agent chat.",
+          ),
+          el("p", { class: "crew-action-next" }, "NEXT ROLE · HALCYON"),
+          mainsStatus,
+        ),
+        breakerScene(ctx, (message) => {
+          mainsStatus.textContent = message;
+        }),
       ),
     );
   },
