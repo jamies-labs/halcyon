@@ -304,6 +304,79 @@ test("recorder panel lists a selected manual registry call", async ({
   );
 });
 
+test("simulator shows selected tool description schema and valid example", async ({
+  page,
+}) => {
+  await page.goto("/?fast=1&sim=1&ch=2");
+  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("sim-tool-select").selectOption("flag_section");
+
+  const details = page.getByTestId("sim-tool-details");
+  await expect(details).toContainText("flag_section");
+  await expect(details).toContainText("section_id");
+  await expect(details).toContainText("priority");
+  await expect(details).toContainText('{"section":"S3"}');
+  await expect(details).toContainText('{"section":6}');
+  await expect(page.getByTestId("sim-args")).toHaveValue(
+    '{"section_id":"s2","priority":1}',
+  );
+});
+
+test("simulator renders invalid JSON and schema validation outcomes", async ({
+  page,
+}) => {
+  await page.goto("/?fast=1&sim=1&ch=2");
+  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("sim-tool-select").selectOption("flag_section");
+
+  const result = page.getByTestId("sim-result");
+  await page.getByTestId("sim-args").fill('{"priority":');
+  await page.getByTestId("sim-invoke").click();
+  await expect(result).toContainText("ok=false");
+  await expect(result).toContainText("INVALID_JSON");
+  await expect(result).toContainText("detail");
+  await expect(result).toContainText("hint");
+
+  await page.getByTestId("sim-args").fill("{}");
+  await page.getByTestId("sim-invoke").click();
+  await expect(result).toContainText("ok=false");
+  await expect(result).toContainText("INVALID_ARGS");
+  await expect(result).toContainText("args.section_id is required");
+  await expect(result).toContainText(
+    "Check the tool inputSchema and correct the arguments.",
+  );
+});
+
+test("simulator renders no mains and successful state outcomes", async ({
+  page,
+}) => {
+  await page.goto("/?fast=1&sim=1&ch=1");
+  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("sim-tool-select").selectOption("boot_handshake");
+  await page.getByTestId("sim-invoke").click();
+
+  const result = page.getByTestId("sim-result");
+  await expect(result).toContainText("NO_MAINS_POWER");
+  await expect(result).toContainText(
+    "Ask the crew to throw and hold the physical master breaker up with their hands.",
+  );
+  await expect(result).toContainText("Boot state remains false");
+  expect(await page.evaluate(() => window.halcyonSim.getState().booted)).toBe(
+    false,
+  );
+
+  await page.evaluate(() => window.halcyonSim.goto(2));
+  await page.getByTestId("sim-tool-select").selectOption("flag_section");
+  await page.getByTestId("sim-args").fill('{"section_id":"s2","priority":1}');
+  await page.getByTestId("sim-invoke").click();
+  await expect(result).toContainText("ok=true");
+  await expect(result).toContainText('"section_id": "s2"');
+  await expect(result).toContainText('"flagged": true');
+  await expect(result).toContainText(
+    "awaits crew acknowledgement on the deck map",
+  );
+});
+
 test("recorder renders complete safe invocation outcomes", async ({ page }) => {
   await page.goto("/?fast=1&sim=1&ch=3");
 

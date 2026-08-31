@@ -157,6 +157,8 @@ export const ch2: Chapter = {
                 "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this nominal section must stay unacknowledged.",
               wait_for:
                 "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
+              state_consequence:
+                "No triage flag was added; the nominal section remains unacknowledged.",
             };
           }
           if (!REACHABLE.has(id)) {
@@ -169,6 +171,8 @@ export const ch2: Chapter = {
                 "Ask the crew to acknowledge a flagged reachable section on the physical deck map; this jammed hatch cannot be operated.",
               wait_for:
                 "Wait until a flagged reachable deck-map section is acknowledged before continuing triage.",
+              state_consequence:
+                "No triage flag was added; the jammed hatch remains unreachable.",
             };
           }
           if (flagged.has(id)) {
@@ -178,6 +182,8 @@ export const ch2: Chapter = {
                 "Ask the crew to acknowledge this flagged section on the physical deck map.",
               wait_for:
                 "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+              state_consequence:
+                "The section remains flagged and awaits crew acknowledgement on the deck map.",
               data: { section_id: id, already_flagged: true },
             };
           }
@@ -191,6 +197,8 @@ export const ch2: Chapter = {
               "Ask the crew to acknowledge this flagged section on the physical deck map.",
             wait_for:
               "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+            state_consequence:
+              "The section is flagged and awaits crew acknowledgement on the deck map.",
             data: {
               section_id: id,
               flagged: true,

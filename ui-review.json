@@ -83,7 +83,7 @@
       "variant": "recorder-open",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=sim-result]",
       "setup": {
         "interactions": [
           {
@@ -91,10 +91,10 @@
             "selector": "[data-testid=recorder-toggle]"
           }
         ],
-        "settled_selector": "[data-testid=recorder-panel]"
+        "settled_selector": "[data-testid=sim-tool-details]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC2"],
         "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
         "triggerOnlyPaths": []
       }
@@ -235,7 +235,7 @@
       "variant": "recorder-live-tools",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=sim-tool-details]",
       "setup": {
         "local_storage": {
           "halcyon.save.v1": "{\"chapter\":4,\"chapterDone\":{\"1\":true,\"2\":true,\"3\":true,\"4\":false,\"5\":false,\"6\":false}}"
@@ -250,10 +250,10 @@
             "selector": "[data-testid=recorder-toggle]"
           }
         ],
-        "settled_selector": "[data-testid=recorder-panel]"
+        "settled_selector": "[data-testid=sim-tool-details]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC0", "AC3"],
         "changedPaths": [
           "src/main.ts",
           "src/ui/outcome.ts",
@@ -269,7 +269,7 @@
       "variant": "recorder-failure-retry",
       "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=sim-result]",
       "setup": {
         "interactions": [
           {
@@ -290,10 +290,10 @@
             "selector": "[data-testid=sim-invoke]"
           }
         ],
-        "settled_selector": "[data-testid=recorder-log]"
+        "settled_selector": "[data-testid=sim-result]"
       },
       "covers": {
-        "requirementKeys": [],
+        "requirementKeys": ["AC1", "AC4"],
         "changedPaths": [
           "src/ui/outcome.ts",
           "src/ui/recorder.ts",

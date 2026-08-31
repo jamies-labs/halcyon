@@ -156,6 +156,8 @@ export const ch1: Chapter = {
               "Ask the crew to throw and hold the physical master breaker up with their hands.",
             wait_for:
               "Wait until the crew-observable breaker scene shows the mains bus energized, then call boot_handshake during that window.",
+            state_consequence:
+              "Boot state remains false; the mains bus remains dark.",
           };
         }
 
@@ -176,6 +178,7 @@ export const ch1: Chapter = {
             "The crew's physical master-breaker action opened mains; no further breaker action is needed for this boot.",
           wait_for:
             "Poll get_ship_state and continue only after the observable booted state is true.",
+          state_consequence: "Boot state is true; global tools are now online.",
           data: {
             booted: true,
             note: "Global tools are now online: get_ship_state, broadcast.",
