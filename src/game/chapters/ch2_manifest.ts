@@ -31,7 +31,7 @@ function sectionLabel(id: SectionId, result = tested.get(id)): string {
   const action = result
     ? "Result recorded. Report jammed section numbers to your agent chat."
     : "Tap once to test this hatch.";
-  return `Section ${id.slice(1)}, ${state}. ${action} Physical control, crew hands only; HALCYON must ask the crew, not operate it.`;
+  return `Section ${id.slice(1)}, ${state}. ${action} — physical control, crew hands only; HALCYON must ask the crew, not operate it.`;
 }
 
 function acknowledgeSection(id: SectionId, ctx: ChapterCtx): void {

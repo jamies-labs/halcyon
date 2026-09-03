@@ -527,6 +527,7 @@ test("Two-Man Rule broadcast and review scenario preserve cooperative evidence",
   expect(scenario?.ready_selector).toBe("[data-testid=ch5-handoff-status]");
   expect(scenario?.covers.changedPaths).toEqual([
     "src/game/chapters/ch5_twoman.ts",
+    "src/styles.css",
   ]);
   const requirementKeys = scenario?.covers.requirementKeys;
   expect(Array.isArray(requirementKeys)).toBe(true);

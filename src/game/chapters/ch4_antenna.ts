@@ -311,6 +311,7 @@ export const ch4: Chapter = {
     );
 
     let previousStrength = signalStrength();
+    let holdResetVisible = false;
     const updateFeedback = (): void => {
       if (locked) return;
       const error = alignmentError();
@@ -327,6 +328,7 @@ export const ch4: Chapter = {
       knob.setAttribute("aria-valuenow", String(strength));
 
       if (band === "LOCK") {
+        holdResetVisible = false;
         if (lockStartedAt === null) lockStartedAt = Date.now();
         const progress = Math.min(
           1,
@@ -347,11 +349,12 @@ export const ch4: Chapter = {
 
       if (lockStartedAt !== null) {
         lockStartedAt = null;
+        holdResetVisible = true;
         if (holdStatus)
           holdStatus.textContent =
             "Lock hold reset: the dish left peak strength. Return to LOCK and hold steady.";
         ctx.recorder.addHuman("Antenna lock hold reset: dish moved off peak.");
-      } else if (holdStatus) {
+      } else if (holdStatus && !holdResetVisible) {
         holdStatus.textContent =
           band === "NEAR"
             ? "NEAR: use small movements or Shift + Arrow keys. Follow rising strength."
