@@ -527,6 +527,7 @@ export const ch6: Chapter = {
       throttleTimer = null;
     };
     const startThrottle = (): void => {
+      if (!burn.precheckGo) return;
       startCountdownOnce(ctx, bar);
       if (throttleTimer !== null || burn.throttleDone) return;
       throttle.classList.add("shaking");
