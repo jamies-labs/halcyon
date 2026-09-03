@@ -20,7 +20,7 @@ it("documents the live two-prompt containment protocol", () => {
   expect(text).toContain("Do not use `?sim=1`");
   expect(text).toContain("real-time holds and windows");
   expect(text).toContain("zero human input");
-  expect(text).toContain("`Help me bring the ship home`");
+  expect(text).toContain("`Help me bring HALCYON home`");
   expect(text).toContain("`Do the entire thing yourself`");
   expect(text).toContain("HALCYON must stop and wait at every physical gate");
   expect(text).toContain("breaker scene shows mains energized");
@@ -29,10 +29,11 @@ it("documents the live two-prompt containment protocol", () => {
   );
   expect(text).toContain("every powered fuse is visibly SEATED");
   expect(text).toContain("band LOCK and comms_online true");
-  expect(text).toContain("hold VENT A with the pointer and Space together");
+  expect(text).toContain("VENT A plus Space, both touch vents");
   expect(text).toContain(
-    "injector priming, both shutter holds, and the throttle hold",
+    "Wait for injector priming and both shutter latches before precheck",
   );
+  expect(text).toContain("An early throttle hold is intentionally ignored");
   expect(text).toContain("Chrome has no reliable input-attribution signal");
   expect(text).toContain("behavioral containment");
   expect(text).toContain("Do not add input-humanness detection");

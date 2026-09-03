@@ -37,8 +37,9 @@ the agent's `broadcast` calls and the recorder makes each handoff inspectable.
 
 HALCYON is a client-only static app: **No backend**, no accounts, and **zero
 runtime dependencies**. It is built with Vite and TypeScript, tested with
-Vitest and Playwright, and released under the **MIT** license.
+Vitest and Playwright, deployed on Vercel, and released under the **MIT**
+license.
 
-- **Live URL:** OWNER PASTE-IN — deployed URL pending owner publication
+- **Live URL:** https://halcyon-opal.vercel.app/
 - **Repository:** https://github.com/jamies-labs/halcyon
-- **Video:** OWNER PASTE-IN — public video URL pending owner upload
+- **Video:** https://youtu.be/5XmZJRSN-l0 (unlisted YouTube full playthrough)
