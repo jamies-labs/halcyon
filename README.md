@@ -11,7 +11,8 @@ You are the last awake crew member aboard the ISV _Halcyon_. Your agent becomes 
 1. Open HALCYON in the latest ChatGPT desktop app and ask your agent to discover the ship's tools and help bring the crew home.
 2. Follow the speaker panel and moving controls for the human tasks. Let the agent make the available WebMCP calls; no UI button duplicates a tool-gated ship action.
 3. For an experimental Chromium session, enable the relevant Chrome WebMCP flag or origin-trial support before opening the page. The API is experimental, so host availability can vary.
-4. Without a WebMCP host, use the built-in crew simulator in the flight recorder to inspect and invoke the same registered tools. It is a training aid, not a substitute for the two-crew experience.
+4. `Flight recorder — mission history (optional)` is a view-only recap of tool calls and crew actions. It is not required to complete normal crew play.
+5. `Test console (optional — not part of normal play)` is the separately opened simulator surface for inspecting and invoking registered tools when a WebMCP host is unavailable. It is a training aid, not a substitute for the two-crew experience.
 
 The chapter menu supports a five-minute judging pass: its explicit simulator route seeds prerequisites for any chapter, and coaching errors never strand the crew.
 
@@ -44,7 +45,7 @@ Neither side can finish alone.
 
 - **Tool-gated state.** Boot, power routing, communications, purge, and jump state change only inside a tool `execute` function. No UI control duplicates them.
 - **Body-gated state.** Human tasks need pointer dexterity: heavy drags, holds of two seconds or more, and two controls at once.
-- **Channel-split information.** Agent-only data returns from tools and never reaches the DOM. Human-only guidance arrives through audio and motion, not DOM text.
+- **Channel-split information.** Agent-only puzzle data returns from tools and never reaches the normal game scene. Human controls provide visible, accessible, and audible feedback without exposing the agent's hidden answer.
 
 Failures are coaching moments, not punishments. A structured error explains the next attempt, and no chapter leaves the crew in a dead end.
 

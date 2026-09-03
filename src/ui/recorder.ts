@@ -238,78 +238,7 @@ export function mountRecorderPanel(
   container: HTMLElement,
 ): void {
   const log = el("div", { class: "rec-log", "data-testid": "recorder-log" });
-  const select = el("select", {
-    "data-testid": "sim-tool-select",
-    "aria-label": "Simulator tool",
-  });
-  const args = el("textarea", {
-    class: "sim-args",
-    "data-testid": "sim-args",
-    rows: "3",
-    "aria-label": "Tool arguments as JSON",
-  });
-  args.value = "{}";
-  const details = el("section", {
-    class: "sim-tool-details",
-    "data-testid": "sim-tool-details",
-    "aria-label": "Selected simulator tool details",
-  });
-  const result = el("section", {
-    class: "sim-result",
-    "data-testid": "sim-result",
-    "aria-label": "Latest simulator result",
-    "aria-live": "polite",
-  });
-  const refresh = () => {
-    const selectedName = select.value;
-    const tools = registry.listTools();
-    select.replaceChildren(
-      ...tools.map((tool) => el("option", { value: tool.name }, tool.name)),
-    );
-    const selected =
-      tools.find((tool) => tool.name === selectedName) ?? tools[0];
-    select.value = selected?.name ?? "";
-    renderDetails(selected, details, args, selected?.name !== selectedName);
-  };
-  registry.subscribe(refresh);
-  refresh();
-  select.addEventListener("change", () => {
-    renderDetails(
-      registry.listTools().find((tool) => tool.name === select.value),
-      details,
-      args,
-      true,
-    );
-  });
-  const invokeButton = el(
-    "button",
-    { class: "sim-invoke", type: "button", "data-testid": "sim-invoke" },
-    "Invoke selected tool",
-  );
-  invokeButton.addEventListener("click", () => {
-    let parsed: unknown = {};
-    try {
-      parsed = JSON.parse(args.value || "{}");
-    } catch (error) {
-      renderResult(
-        {
-          ok: false,
-          code: "INVALID_JSON",
-          detail:
-            error instanceof Error
-              ? error.message
-              : "Arguments are not valid JSON.",
-          hint: "Correct the JSON syntax, then invoke the tool again.",
-        },
-        result,
-      );
-      return;
-    }
-    void registry.invoke(select.value, parsed, "sim").then((record) => {
-      renderResult(record.outcome, result);
-    });
-  });
-  const close = el(
+  const recorderClose = el(
     "button",
     {
       class: "recorder-close",
@@ -318,27 +247,26 @@ export function mountRecorderPanel(
     },
     "Close flight recorder",
   );
-  const panel = el(
+  const recorderPanel = el(
     "aside",
     {
       class: "recorder-panel hidden",
       "data-testid": "recorder-panel",
-      "aria-label": "Flight recorder and crew simulator",
+      "aria-label": "Flight recorder — mission history (optional)",
       "aria-hidden": "true",
       hidden: "",
     },
     el(
       "div",
       { class: "recorder-heading" },
-      el("h2", { class: "rec-title" }, "Flight recorder / crew simulator"),
-      close,
+      el("h2", { class: "rec-title" }, "Flight recorder — mission history"),
+      recorderClose,
     ),
     log,
-    el("div", { class: "sim-form" }, select, details, args, invokeButton),
-    result,
   );
   recorder.attachLog(log);
-  const toggle = el(
+  recorderPanel.id = "recorder-panel";
+  const recorderToggle = el(
     "button",
     {
       class: "recorder-toggle",
@@ -347,33 +275,176 @@ export function mountRecorderPanel(
       "aria-controls": "recorder-panel",
       "aria-expanded": "false",
     },
-    "Open flight recorder",
+    "Flight recorder — mission history (optional)",
   );
-  panel.id = "recorder-panel";
-  const setOpen = (open: boolean): void => {
+
+  const consoleBody = el("div", {
+    class: "test-console-body",
+    "data-testid": "test-console-body",
+  });
+  const consoleClose = el(
+    "button",
+    {
+      class: "test-console-close",
+      type: "button",
+      "data-testid": "test-console-close",
+    },
+    "Close test console",
+  );
+  const consolePanel = el(
+    "aside",
+    {
+      class: "test-console-panel hidden",
+      "data-testid": "test-console-panel",
+      "aria-label": "Test console (optional — not part of normal play)",
+      "aria-hidden": "true",
+      hidden: "",
+    },
+    el(
+      "div",
+      { class: "recorder-heading" },
+      el(
+        "h2",
+        { class: "rec-title" },
+        "Test console (optional — not part of normal play)",
+      ),
+      consoleClose,
+    ),
+    consoleBody,
+  );
+  consolePanel.id = "test-console-panel";
+  const consoleToggle = el(
+    "button",
+    {
+      class: "test-console-toggle",
+      type: "button",
+      "data-testid": "test-console-toggle",
+      "aria-controls": "test-console-panel",
+      "aria-expanded": "false",
+    },
+    "Test console (optional — not part of normal play)",
+  );
+
+  let refreshConsole: (() => void) | null = null;
+  const ensureConsoleMounted = (): void => {
+    if (refreshConsole) return;
+
+    const select = el("select", {
+      "data-testid": "sim-tool-select",
+      "aria-label": "Test console tool",
+    });
+    const args = el("textarea", {
+      class: "sim-args",
+      "data-testid": "sim-args",
+      rows: "3",
+      "aria-label": "Tool arguments as JSON",
+    });
+    args.value = "{}";
+    const details = el("section", {
+      class: "sim-tool-details",
+      "data-testid": "sim-tool-details",
+      "aria-label": "Selected test console tool details",
+    });
+    const result = el("section", {
+      class: "sim-result",
+      "data-testid": "sim-result",
+      "aria-label": "Latest test console result",
+      "aria-live": "polite",
+    });
+    const invokeButton = el(
+      "button",
+      { class: "sim-invoke", type: "button", "data-testid": "sim-invoke" },
+      "Invoke selected tool",
+    );
+
+    refreshConsole = () => {
+      const selectedName = select.value;
+      const tools = registry.listTools();
+      select.replaceChildren(
+        ...tools.map((tool) => el("option", { value: tool.name }, tool.name)),
+      );
+      const selected =
+        tools.find((tool) => tool.name === selectedName) ?? tools[0];
+      select.value = selected?.name ?? "";
+      renderDetails(selected, details, args, selected?.name !== selectedName);
+    };
+    registry.subscribe(() => refreshConsole?.());
+    select.addEventListener("change", () => {
+      renderDetails(
+        registry.listTools().find((tool) => tool.name === select.value),
+        details,
+        args,
+        true,
+      );
+    });
+    invokeButton.addEventListener("click", () => {
+      let parsed: unknown = {};
+      try {
+        parsed = JSON.parse(args.value || "{}");
+      } catch (error) {
+        renderResult(
+          {
+            ok: false,
+            code: "INVALID_JSON",
+            detail:
+              error instanceof Error
+                ? error.message
+                : "Arguments are not valid JSON.",
+            hint: "Correct the JSON syntax, then invoke the tool again.",
+          },
+          result,
+        );
+        return;
+      }
+      void registry.invoke(select.value, parsed, "sim").then((record) => {
+        renderResult(record.outcome, result);
+      });
+    });
+    consoleBody.append(
+      el("div", { class: "sim-form" }, select, details, args, invokeButton),
+      result,
+    );
+    refreshConsole();
+  };
+
+  const setOpen = (
+    panel: HTMLElement,
+    toggle: HTMLButtonElement,
+    open: boolean,
+  ): void => {
     panel.hidden = !open;
     panel.classList.toggle("hidden", !open);
     panel.setAttribute("aria-hidden", String(!open));
     toggle.setAttribute("aria-expanded", String(open));
-    toggle.textContent = open
-      ? "Close flight recorder"
-      : "Open flight recorder";
-    if (open) refresh();
   };
-  toggle.addEventListener("click", () => {
-    const open = panel.hidden;
-    setOpen(open);
-    if (!open) toggle.focus();
+  recorderToggle.addEventListener("click", () => {
+    const open = recorderPanel.hidden;
+    setOpen(recorderPanel, recorderToggle, open);
+    if (!open) recorderToggle.focus();
   });
-  close.addEventListener("click", () => {
-    setOpen(false);
-    toggle.focus();
+  recorderClose.addEventListener("click", () => {
+    setOpen(recorderPanel, recorderToggle, false);
+    recorderToggle.focus();
+  });
+  consoleToggle.addEventListener("click", () => {
+    const open = consolePanel.hidden;
+    if (open) ensureConsoleMounted();
+    setOpen(consolePanel, consoleToggle, open);
+    if (!open) consoleToggle.focus();
+  });
+  consoleClose.addEventListener("click", () => {
+    setOpen(consolePanel, consoleToggle, false);
+    consoleToggle.focus();
   });
   const dock = el(
     "section",
-    { class: "recorder-dock", "aria-label": "Flight recorder controls" },
-    toggle,
-    panel,
+    {
+      class: "recorder-dock",
+      "aria-label": "Optional mission history and test console",
+    },
+    el("div", { class: "optional-surface-controls" }, recorderToggle, consoleToggle),
+    recorderPanel,
+    consolePanel,
   );
   container.insertBefore(dock, container.querySelector(".stage"));
 }

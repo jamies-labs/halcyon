@@ -58,43 +58,29 @@
     {
       "route": "/",
       "state": "resolved",
-      "variant": "recorder-closed",
-      "viewports": [375, 768, 1280],
+      "variant": "recorder-open",
+      "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=recorder-toggle]",
+      "ready_selector": "[data-testid=test-console-panel]",
       "setup": {
         "interactions": [
           {
             "action": "click",
             "selector": "[data-testid=gate-start]"
-          }
-        ],
-        "settled_selector": "[data-testid=recorder-toggle]"
-      },
-      "covers": {
-        "requirementKeys": [],
-        "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
-        "triggerOnlyPaths": []
-      }
-    },
-    {
-      "route": "/",
-      "state": "resolved",
-      "variant": "recorder-open",
-      "viewports": [375, 768, 1280],
-      "theme": "light",
-      "ready_selector": "[data-testid=sim-result]",
-      "setup": {
-        "interactions": [
+          },
           {
             "action": "click",
             "selector": "[data-testid=recorder-toggle]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=test-console-toggle]"
           }
         ],
         "settled_selector": "[data-testid=sim-tool-details]"
       },
       "covers": {
-        "requirementKeys": ["AC2"],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3"],
         "changedPaths": ["src/ui/recorder.ts", "src/styles.css"],
         "triggerOnlyPaths": []
       }
@@ -103,9 +89,9 @@
       "route": "/",
       "state": "resolved",
       "variant": "chapter-two-manifest",
-      "viewports": [375],
+      "viewports": [375, 768, 1280],
       "theme": "light",
-      "ready_selector": "[data-section=s2]",
+      "ready_selector": "[data-testid=crew-action-ch2]",
       "setup": {
         "interactions": [
           {
@@ -117,11 +103,14 @@
             "selector": "[data-testid=goto-ch2]"
           }
         ],
-        "settled_selector": "[data-section=s2]"
+        "settled_selector": "[data-testid=hatch-state-s3]"
       },
       "covers": {
-        "requirementKeys": [],
-        "changedPaths": ["src/game/chapters/ch2_manifest.ts"],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "changedPaths": [
+          "src/game/chapters/ch2_manifest.ts",
+          "src/styles.css"
+        ],
         "triggerOnlyPaths": []
       }
     },
@@ -131,7 +120,7 @@
       "variant": "chapter-three-power",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=fuse-tray]",
+      "ready_selector": "[data-testid=power-crew-guidance]",
       "setup": {
         "interactions": [
           {
@@ -143,11 +132,15 @@
             "selector": "[data-testid=goto-ch3]"
           }
         ],
-        "settled_selector": "[data-testid=fuse-tray]"
+        "settled_selector": "[data-testid=power-stabilization-status]"
       },
       "covers": {
-        "requirementKeys": [],
-        "changedPaths": ["src/game/chapters/ch3_power.ts"],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "changedPaths": [
+          "src/game/chapters/ch3_power.ts",
+          "src/game/timings.ts",
+          "src/styles.css"
+        ],
         "triggerOnlyPaths": []
       }
     },
@@ -157,7 +150,7 @@
       "variant": "chapter-four-antenna",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=dish-readout]",
+      "ready_selector": "[data-testid=crew-action-ch4]",
       "setup": {
         "interactions": [
           {
@@ -169,11 +162,14 @@
             "selector": "[data-testid=goto-ch4]"
           }
         ],
-        "settled_selector": "[data-testid=dish-readout]"
+        "settled_selector": "[data-testid=antenna-hold-status]"
       },
       "covers": {
         "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
-        "changedPaths": ["src/game/chapters/ch4_antenna.ts"],
+        "changedPaths": [
+          "src/game/chapters/ch4_antenna.ts",
+          "src/styles.css"
+        ],
         "triggerOnlyPaths": []
       }
     },
@@ -183,7 +179,7 @@
       "variant": "chapter-five-two-man",
       "viewports": [375, 1280],
       "theme": "light",
-      "ready_selector": "[data-testid=vent-left]",
+      "ready_selector": "[data-testid=ch5-handoff-status]",
       "setup": {
         "interactions": [
           {
@@ -195,11 +191,48 @@
             "selector": "[data-testid=goto-ch5]"
           }
         ],
-        "settled_selector": "[data-testid=vent-left]"
+        "settled_selector": "[data-testid=ch5-handoff-status]"
       },
       "covers": {
-        "requirementKeys": [],
-        "changedPaths": ["src/game/chapters/ch5_twoman.ts"],
+        "requirementKeys": ["AC0", "AC1", "AC2", "AC3", "AC4"],
+        "changedPaths": [
+          "src/game/chapters/ch5_twoman.ts",
+          "src/styles.css"
+        ],
+        "triggerOnlyPaths": []
+      }
+    },
+    {
+      "route": "/",
+      "state": "resolved",
+      "variant": "chapter-five-crew-ready",
+      "viewports": [375, 1280],
+      "theme": "light",
+      "ready_selector": "[data-testid=ch5-handoff-status]",
+      "setup": {
+        "interactions": [
+          {
+            "action": "click",
+            "selector": "[data-testid=gate-start]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=goto-ch5]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=ch5-crew-ready]"
+          }
+        ],
+        "settled_selector": "[data-testid=ch5-crew-ready-status]"
+      },
+      "covers": {
+        "requirementKeys": ["AC0"],
+        "changedPaths": [
+          "src/game/chapters/ch5_twoman.ts",
+          "src/styles.css",
+          "docs/qa/co-op-acceptance.md"
+        ],
         "triggerOnlyPaths": []
       }
     },
@@ -248,6 +281,10 @@
           {
             "action": "click",
             "selector": "[data-testid=recorder-toggle]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=test-console-toggle]"
           }
         ],
         "settled_selector": "[data-testid=sim-tool-details]"
@@ -279,6 +316,10 @@
           {
             "action": "click",
             "selector": "[data-testid=recorder-toggle]"
+          },
+          {
+            "action": "click",
+            "selector": "[data-testid=test-console-toggle]"
           },
           {
             "action": "fill",

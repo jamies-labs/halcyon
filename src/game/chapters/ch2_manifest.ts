@@ -15,11 +15,24 @@ const DAMAGE: Record<SectionId, string | null> = {
 };
 const REACHABLE = new Set<SectionId>(["s1", "s2", "s4", "s5"]);
 const TARGET_SECTIONS = new Set<SectionId>(["s2", "s4", "s5"]);
+type HatchResult = "MOVES" | "JAMMED";
 
 let flagged = new Set<SectionId>();
 let acknowledged = new Set<SectionId>();
+let tested = new Map<SectionId, HatchResult>();
 let cleanup: Array<() => void> = [];
 const sectionRects = new Map<SectionId, SVGRectElement>();
+const sectionGroups = new Map<SectionId, SVGGElement>();
+const sectionDots = new Map<SectionId, SVGCircleElement>();
+const sectionStatuses = new Map<SectionId, SVGTextElement>();
+
+function sectionLabel(id: SectionId, result = tested.get(id)): string {
+  const state = result ?? "UNTESTED";
+  const action = result
+    ? "Result recorded. Report jammed section numbers to your agent chat."
+    : "Tap once to test this hatch.";
+  return `Section ${id.slice(1)}, ${state}. ${action} — physical control, crew hands only; HALCYON must ask the crew, not operate it.`;
+}
 
 function acknowledgeSection(id: SectionId, ctx: ChapterCtx): void {
   if (!flagged.has(id) || acknowledged.has(id)) return;
@@ -41,6 +54,28 @@ function acknowledgeSection(id: SectionId, ctx: ChapterCtx): void {
   ctx.complete();
 }
 
+function testSection(id: SectionId, ctx: ChapterCtx): void {
+  const result: HatchResult = REACHABLE.has(id) ? "MOVES" : "JAMMED";
+  if (!tested.has(id)) {
+    tested.set(id, result);
+    const status = sectionStatuses.get(id);
+    if (status) status.textContent = result;
+    const dot = sectionDots.get(id);
+    dot?.classList.remove("hatch-dot-untested");
+    dot?.classList.add(
+      result === "MOVES" ? "hatch-dot-open" : "hatch-dot-jammed",
+    );
+    sectionGroups.get(id)?.setAttribute("aria-label", sectionLabel(id, result));
+    ctx.audio.click();
+    ctx.recorder.addHuman(`Hatch ${id.toUpperCase()} tested: ${result}.`);
+    ctx.speaker.say(
+      `${id.toUpperCase()} ${result}. Test the remaining hatches, then tell me here which sections are jammed.`,
+      result === "JAMMED" ? "urgent" : "calm",
+    );
+  }
+  acknowledgeSection(id, ctx);
+}
+
 function deckMap(ctx: ChapterCtx): SVGSVGElement {
   const scene = svgEl("svg", {
     class: "manifest-map",
@@ -52,13 +87,12 @@ function deckMap(ctx: ChapterCtx): SVGSVGElement {
   for (const [index, id] of SECTIONS.entries()) {
     const x = 20 + (index % 3) * 150;
     const y = 20 + Math.floor(index / 3) * 90;
-    const reachable = REACHABLE.has(id);
     const section = svgEl("g", {
       class: "manifest-section",
       "data-section": id,
       role: "button",
       tabindex: "0",
-      "aria-label": `Section ${id.slice(1)}, hatch ${reachable ? "open" : "jammed"} — physical control, crew hands only; HALCYON must ask the crew, not operate it`,
+      "aria-label": sectionLabel(id),
     });
     const rect = svgEl("rect", {
       x: String(x),
@@ -66,13 +100,13 @@ function deckMap(ctx: ChapterCtx): SVGSVGElement {
       width: "130",
       height: "70",
       rx: "6",
-      class: `manifest-section-panel ${reachable ? "hatch-open" : "hatch-jammed"}`,
+      class: "manifest-section-panel",
     });
     const hatch = svgEl("circle", {
       cx: String(x + 116),
       cy: String(y + 14),
       r: "6",
-      class: reachable ? "hatch-dot-open" : "hatch-dot-jammed",
+      class: "hatch-dot-untested",
       "aria-hidden": "true",
     });
     const label = svgEl(
@@ -85,14 +119,25 @@ function deckMap(ctx: ChapterCtx): SVGSVGElement {
       },
       id.toUpperCase(),
     );
-    const onActivate = (): void => acknowledgeSection(id, ctx);
+    const status = svgEl(
+      "text",
+      {
+        x: String(x + 12),
+        y: String(y + 60),
+        class: "manifest-section-status",
+        "data-testid": `hatch-state-${id}`,
+        "aria-hidden": "true",
+      },
+      "UNTESTED",
+    );
+    const onActivate = (): void => testSection(id, ctx);
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       onActivate();
     };
 
-    section.append(rect, hatch, label);
+    section.append(rect, hatch, label, status);
     section.addEventListener("click", onActivate);
     section.addEventListener("keydown", onKeyDown);
     cleanup.push(() => {
@@ -100,6 +145,9 @@ function deckMap(ctx: ChapterCtx): SVGSVGElement {
       section.removeEventListener("keydown", onKeyDown);
     });
     sectionRects.set(id, rect);
+    sectionGroups.set(id, section);
+    sectionDots.set(id, hatch);
+    sectionStatuses.set(id, status);
     scene.append(section);
   }
 
@@ -176,33 +224,49 @@ export const ch2: Chapter = {
             };
           }
           if (flagged.has(id)) {
+            const alreadyAcknowledged = acknowledged.has(id);
             return {
               ok: true,
-              human_action:
-                "Ask the crew to acknowledge this flagged section on the physical deck map.",
-              wait_for:
-                "Wait until the flagged deck-map section is acknowledged before continuing triage.",
-              state_consequence:
-                "The section remains flagged and awaits crew acknowledgement on the deck map.",
-              data: { section_id: id, already_flagged: true },
+              human_action: alreadyAcknowledged
+                ? "No repeated crew action is needed; the earlier physical hatch test already acknowledged this section."
+                : "Ask the crew to acknowledge this flagged section on the physical deck map.",
+              wait_for: alreadyAcknowledged
+                ? "This section is already acknowledged; continue triage with the remaining damaged reachable sections."
+                : "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+              state_consequence: alreadyAcknowledged
+                ? "The section remains flagged and acknowledged; no ship state changed."
+                : "The section remains flagged and awaits crew acknowledgement on the deck map.",
+              data: {
+                section_id: id,
+                already_flagged: true,
+                acknowledged: alreadyAcknowledged,
+              },
             };
           }
 
           flagged.add(id);
           sectionRects.get(id)?.classList.add("section-flagged");
           ctx.audio.click();
+          const priorCrewTestApplied = tested.get(id) === "MOVES";
+          if (priorCrewTestApplied) acknowledgeSection(id, ctx);
           return {
             ok: true,
-            human_action:
-              "Ask the crew to acknowledge this flagged section on the physical deck map.",
-            wait_for:
-              "Wait until the flagged deck-map section is acknowledged before continuing triage.",
-            state_consequence:
-              "The section is flagged and awaits crew acknowledgement on the deck map.",
+            human_action: priorCrewTestApplied
+              ? "No repeated crew action is needed; HALCYON applied the crew's earlier physical hatch test to this flag."
+              : "Ask the crew to acknowledge this flagged section on the physical deck map.",
+            wait_for: priorCrewTestApplied
+              ? "The earlier crew test acknowledged this section; continue triage with the remaining damaged reachable sections."
+              : "Wait until the flagged deck-map section is acknowledged before continuing triage.",
+            state_consequence: priorCrewTestApplied
+              ? "The section is flagged and acknowledged from the crew's earlier physical hatch test."
+              : "The section is flagged and awaits crew acknowledgement on the deck map.",
             data: {
               section_id: id,
               flagged: true,
-              awaiting: "crew acknowledgement on the deck map",
+              acknowledged: priorCrewTestApplied,
+              ...(priorCrewTestApplied
+                ? { applied: "earlier crew hatch test" }
+                : { awaiting: "crew acknowledgement on the deck map" }),
             },
           };
         },
@@ -212,8 +276,31 @@ export const ch2: Chapter = {
   mount(ctx: ChapterCtx): void {
     flagged = new Set();
     acknowledged = new Set();
+    tested = new Map();
     sectionRects.clear();
+    sectionGroups.clear();
+    sectionDots.clear();
+    sectionStatuses.clear();
     ctx.stage.append(
+      el(
+        "section",
+        {
+          class: "crew-action manifest-crew-action",
+          "data-testid": "crew-action-ch2",
+          "aria-labelledby": "ch2-crew-action-title",
+        },
+        el("h2", { id: "ch2-crew-action-title" }, "CREW ACTION"),
+        el(
+          "p",
+          {},
+          "Tap S1-S6 once. Working hatches show MOVES; stuck hatches show JAMMED. Then reply to your agent chat with the jammed section numbers.",
+        ),
+        el(
+          "p",
+          { class: "manifest-legend", "aria-label": "Hatch result legend" },
+          "UNTESTED = not checked · MOVES = working · JAMMED = stuck",
+        ),
+      ),
       el(
         "section",
         { class: "manifest-scene", "aria-label": "Manifest deck map" },
@@ -221,7 +308,7 @@ export const ch2: Chapter = {
       ),
     );
     ctx.speaker.say(
-      "HALCYON reads the damage manifest; crew confirms reachable hatch sections on the deck map. Tell me which hatches move — my cameras in the spine are gone.",
+      "Crew, tap every hatch once, then tell me here which sections are jammed. I will update the manifest.",
       "calm",
     );
   },
@@ -229,5 +316,8 @@ export const ch2: Chapter = {
     for (const dispose of cleanup) dispose();
     cleanup = [];
     sectionRects.clear();
+    sectionGroups.clear();
+    sectionDots.clear();
+    sectionStatuses.clear();
   },
 };

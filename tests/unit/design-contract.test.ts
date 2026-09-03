@@ -216,13 +216,15 @@ describe("design contract activation", () => {
       recorder,
       "recorder interaction scenario must be present",
     ).toBeDefined();
-    expect(recorder?.ready_selector).toBe("[data-testid=sim-result]");
+    expect(recorder?.ready_selector).toBe(
+      "[data-testid=test-console-panel]",
+    );
     expect(recorder?.setup?.settled_selector).toBe(
       "[data-testid=sim-tool-details]",
     );
   });
 
-  it("declares tokenized recorder docking evidence for both closed and open states", () => {
+  it("declares tokenized evidence for the separate optional recorder and console", () => {
     const review = reviewFiles["/ui-review.json"];
     expect(review, "ui-review.json must be present").toBeTypeOf("string");
 
@@ -241,14 +243,11 @@ describe("design contract activation", () => {
         covers: { changedPaths: string[]; requirementKeys: unknown };
       }>;
     };
-    const closed = parsed.scenarios.find(
-      (scenario) => scenario.variant === "recorder-closed",
-    );
     const opened = parsed.scenarios.find(
       (scenario) => scenario.variant === "recorder-open",
     );
 
-    for (const scenario of [closed, opened]) {
+    for (const scenario of [opened]) {
       expect(
         scenario,
         "recorder review scenario must be present",
@@ -256,7 +255,7 @@ describe("design contract activation", () => {
       expect(scenario?.route).toBe("/");
       expect(scenario?.state).toBe("resolved");
       expect(scenario?.theme).toBe("light");
-      expect(scenario?.viewports).toEqual([375, 768, 1280]);
+      expect(scenario?.viewports).toEqual([375, 1280]);
       expect(scenario?.covers.changedPaths).toEqual(
         expect.arrayContaining(["src/ui/recorder.ts", "src/styles.css"]),
       );
@@ -270,20 +269,15 @@ describe("design contract activation", () => {
       }
     }
 
-    expect(closed?.setup?.interactions).toEqual([
-      { action: "click", selector: "[data-testid=gate-start]" },
-    ]);
-    expect(closed?.setup?.settled_selector).toBe(
-      "[data-testid=recorder-toggle]",
-    );
-    expect(closed?.ready_selector).toBe("[data-testid=recorder-toggle]");
     expect(opened?.setup?.interactions).toEqual([
+      { action: "click", selector: "[data-testid=gate-start]" },
       { action: "click", selector: "[data-testid=recorder-toggle]" },
+      { action: "click", selector: "[data-testid=test-console-toggle]" },
     ]);
     expect(opened?.setup?.settled_selector).toBe(
       "[data-testid=sim-tool-details]",
     );
-    expect(opened?.ready_selector).toBe("[data-testid=sim-result]");
+    expect(opened?.ready_selector).toBe("[data-testid=test-console-panel]");
   });
 
   it("declares closed live-tool and retry evidence for the recorder outcomes", () => {
@@ -389,7 +383,9 @@ describe("design contract activation", () => {
     expect(recorderOpen?.setup?.settled_selector).toBe(
       "[data-testid=sim-tool-details]",
     );
-    expect(recorderOpen?.ready_selector).toBe("[data-testid=sim-result]");
+    expect(recorderOpen?.ready_selector).toBe(
+      "[data-testid=test-console-panel]",
+    );
     expect(liveTools?.setup?.settled_selector).toBe(
       "[data-testid=sim-tool-details]",
     );
@@ -435,6 +431,9 @@ describe("design contract activation", () => {
     const twoMan = parsed.scenarios.find(
       (scenario) => scenario.variant === "chapter-five-two-man",
     );
+    const crewReady = parsed.scenarios.find(
+      (scenario) => scenario.variant === "chapter-five-crew-ready",
+    );
 
     expect(
       twoMan,
@@ -442,11 +441,22 @@ describe("design contract activation", () => {
     ).toBeDefined();
     expect(twoMan?.route).toBe("/");
     expect(twoMan?.viewports).toEqual(expect.arrayContaining([375, 1280]));
-    expect(twoMan?.ready_selector).toBe("[data-testid=vent-left]");
-    expect(twoMan?.setup?.settled_selector).toBe("[data-testid=vent-left]");
-    expect(twoMan?.covers.changedPaths).toEqual([
-      "src/game/chapters/ch5_twoman.ts",
-    ]);
+    expect(twoMan?.ready_selector).toBe("[data-testid=ch5-handoff-status]");
+    expect(twoMan?.setup?.settled_selector).toBe(
+      "[data-testid=ch5-handoff-status]",
+    );
+    expect(twoMan?.covers.changedPaths).toEqual(
+      expect.arrayContaining([
+        "src/game/chapters/ch5_twoman.ts",
+        "src/styles.css",
+      ]),
+    );
+    expect(crewReady?.ready_selector).toBe(
+      "[data-testid=ch5-handoff-status]",
+    );
+    expect(crewReady?.setup?.settled_selector).toBe(
+      "[data-testid=ch5-crew-ready-status]",
+    );
     const requirementKeys = twoMan?.covers.requirementKeys;
     expect(Array.isArray(requirementKeys)).toBe(true);
     if (!Array.isArray(requirementKeys)) {
@@ -478,9 +488,9 @@ describe("design contract activation", () => {
       "chapter-three-power",
       "chapter-four-antenna",
       "chapter-five-two-man",
+      "chapter-five-crew-ready",
       "chapter-six-burn",
       "training-victory",
-      "recorder-closed",
       "recorder-open",
       "recorder-live-tools",
       "recorder-failure-retry",

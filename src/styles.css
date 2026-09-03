@@ -226,6 +226,9 @@ dd {
 .gate-start,
 .recorder-toggle,
 .recorder-close,
+.test-console-toggle,
+.test-console-close,
+.crew-ready,
 .sim-invoke {
   min-width: var(--size-hit-target);
   min-height: var(--size-hit-target);
@@ -245,6 +248,9 @@ dd {
 .chapter-select button:hover,
 .recorder-toggle:hover,
 .recorder-close:hover,
+.test-console-toggle:hover,
+.test-console-close:hover,
+.crew-ready:hover,
 .sim-invoke:hover {
   background: var(--color-accent);
   color: var(--color-canvas);
@@ -253,6 +259,9 @@ dd {
 .chapter-select button:active,
 .recorder-toggle:active,
 .recorder-close:active,
+.test-console-toggle:active,
+.test-console-close:active,
+.crew-ready:active,
 .sim-invoke:active {
   transform: translateY(var(--border-width));
 }
@@ -261,6 +270,9 @@ dd {
 .gate-start:focus-visible,
 .recorder-toggle:focus-visible,
 .recorder-close:focus-visible,
+.test-console-toggle:focus-visible,
+.test-console-close:focus-visible,
+.crew-ready:focus-visible,
 .sim-invoke:focus-visible,
 .sim-form select:focus-visible,
 .sim-args:focus-visible {
@@ -376,6 +388,16 @@ dd {
   padding-block: var(--space-3);
 }
 
+.manifest-crew-action {
+  margin-top: var(--space-2);
+}
+
+.manifest-legend {
+  color: var(--color-muted);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+}
+
 .manifest-map {
   display: block;
   width: min(100%, 30rem);
@@ -413,6 +435,17 @@ dd {
   letter-spacing: 0.08em;
 }
 
+.manifest-section-status {
+  fill: var(--color-muted);
+  font-family: var(--font-utility);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+
+.hatch-dot-untested {
+  fill: var(--color-border);
+}
+
 .fuse-tray {
   display: flex;
   flex-wrap: wrap;
@@ -422,6 +455,9 @@ dd {
 }
 
 .fuse {
+  display: grid;
+  gap: calc(var(--space-1) / 2);
+  justify-items: start;
   min-width: var(--size-hit-target);
   min-height: var(--size-hit-target);
   padding-inline: var(--space-2);
@@ -437,6 +473,26 @@ dd {
     background-color var(--motion-fast),
     color var(--motion-fast),
     transform var(--motion-fast);
+}
+
+.fuse-name {
+  font-weight: 700;
+}
+
+.fuse-state {
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+}
+
+.fuse-progress {
+  width: 100%;
+  accent-color: var(--color-accent-strong);
+}
+
+.power-stabilization-status {
+  width: min(100%, var(--size-content));
+  color: var(--color-accent-strong);
+  font-family: var(--font-utility);
 }
 
 .fuse:hover {
@@ -503,6 +559,48 @@ dd {
   font-family: var(--font-utility);
 }
 
+.antenna-feedback {
+  display: grid;
+  gap: var(--space-1);
+  width: min(100%, 22.5rem);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
+}
+
+.antenna-feedback p,
+.antenna-feedback label {
+  margin: 0;
+}
+
+.antenna-feedback label {
+  display: grid;
+  gap: calc(var(--space-1) / 2);
+  color: var(--color-muted);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+}
+
+.signal-strength,
+.antenna-lock-progress {
+  width: 100%;
+  accent-color: var(--color-accent-strong);
+}
+
+.dish-status {
+  color: var(--color-accent-strong);
+  font-family: var(--font-utility);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.antenna-hold-status {
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
 .vent-row {
   display: flex;
   flex-wrap: wrap;
@@ -512,6 +610,9 @@ dd {
 }
 
 .vent-handle {
+  display: grid;
+  gap: calc(var(--space-1) / 2);
+  justify-items: center;
   min-width: var(--size-hit-target);
   min-height: var(--size-hit-target);
   padding: var(--space-2);
@@ -539,7 +640,7 @@ dd {
 }
 
 .vent-key {
-  cursor: default;
+  cursor: pointer;
 }
 
 .vent-armed {
@@ -547,7 +648,35 @@ dd {
   color: var(--color-focus);
 }
 
+.vent-held {
+  border-color: var(--color-accent-strong);
+  background: var(--color-accent);
+  color: var(--color-canvas);
+}
+
+.vent-state,
+.arm-countdown,
+.ch5-handoff-status,
+.hold-reset-status {
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+}
+
+.vent-state {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.arm-countdown,
+.ch5-handoff-status,
+.hold-reset-status {
+  width: min(100%, var(--size-content));
+  color: var(--color-muted);
+}
+
 .hold-ring {
+  display: grid;
+  place-items: center;
   width: calc(var(--size-hit-target) + var(--space-2));
   height: calc(var(--size-hit-target) + var(--space-2));
   border: var(--border-width) solid var(--color-border);
@@ -556,6 +685,13 @@ dd {
     var(--color-accent-strong) calc(var(--hold-progress, 0) * 1turn),
     var(--color-surface) 0
   );
+}
+
+.hold-ring-text {
+  color: var(--color-text);
+  font-family: var(--font-utility);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
 }
 
 .burn-bar {
@@ -765,11 +901,14 @@ body::after {
   background: var(--color-surface-raised);
 }
 
-.recorder-toggle {
-  justify-self: start;
+.optional-surface-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 
-.recorder-panel {
+.recorder-panel,
+.test-console-panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -780,8 +919,15 @@ body::after {
 }
 
 .recorder-panel.hidden,
-.recorder-panel[hidden] {
+.recorder-panel[hidden],
+.test-console-panel.hidden,
+.test-console-panel[hidden] {
   display: none;
+}
+
+.test-console-body {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .recorder-heading {
@@ -936,7 +1082,7 @@ body::after {
     align-items: center;
   }
 
-  .shell:has(.recorder-panel:not([hidden])) {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden])) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(
         var(--size-recorder-dock),
@@ -945,11 +1091,13 @@ body::after {
     column-gap: var(--space-3);
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .hud {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .hud {
     grid-column: 1 / -1;
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .recorder-dock {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .recorder-dock {
     grid-column: 2;
     grid-row: 2 / span 2;
     align-self: stretch;
@@ -957,12 +1105,14 @@ body::after {
     border-radius: var(--radius-surface);
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .stage {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .stage {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .shell:has(.recorder-panel:not([hidden])) .speaker {
+  .shell:has(.recorder-panel:not([hidden]), .test-console-panel:not([hidden]))
+    .speaker {
     grid-column: 1;
     grid-row: 3;
   }

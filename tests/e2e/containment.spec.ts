@@ -108,6 +108,8 @@ async function alignDish(page: Page): Promise<void> {
 }
 
 async function armPurgeWhenUnsafe(page: Page): Promise<Invocation> {
+  const ready = page.getByTestId("ch5-crew-ready");
+  if (await ready.isEnabled()) await ready.click();
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const response = await invoke(page, "arm_purge");
     if (response.outcome.code === "PRESSURE_OUT_OF_BAND") return response;

@@ -37,10 +37,10 @@ describe("Chapter 3 Power", () => {
     const route = tools.find((tool) => tool.name === "route_power");
     expect(telemetry?.readOnly).toBe(true);
     expect(telemetry?.description).toBe(
-      "HALCYON reads power telemetry and allocates the route; the crew physically seats popped fuses and holds the bus stable. The report includes the total budget in amps and current draw per subsystem. Minimum requirements per subsystem are not documented — the bus reports a brownout when a route leaves one short.",
+      "HALCYON reads the current draw and 60A total budget. Next, HALCYON alone calls route_power with an allocations array of subsystem/amps objects; the crew never routes power and physically seats every fuse shown only after a route is accepted. Required subsystem minimums are taught one at a time by structured BROWNOUT results.",
     );
     expect(route?.description).toBe(
-      "HALCYON allocates amps to subsystems within the 60A budget; the crew physically seats every popped fuse and holds the bus stable. Omitted subsystems get 0A, and re-routing while the crew holds a fuse pops the set again.",
+      "HALCYON alone allocates power within the 60A budget. Submit allocations as an array of unique objects with subsystem (life_support, comms, drive, sensors, lights, or heaters) and integer amps from 0 to 40. Omitted subsystems receive 0A. Follow each BROWNOUT minimum in order; after acceptance, ask the crew to seat every physical fuse shown, one at a time. Re-routing pops and resets the full fuse set.",
     );
     expect(await telemetry!.execute({})).toEqual({
       ok: true,
@@ -107,6 +107,16 @@ describe("Chapter 3 Power", () => {
         "lights",
         4,
       ],
+      [
+        [
+          { subsystem: "life_support", amps: 18 },
+          { subsystem: "comms", amps: 8 },
+          { subsystem: "sensors", amps: 6 },
+          { subsystem: "lights", amps: 4 },
+        ],
+        "drive",
+        14,
+      ],
     ] as const) {
       const brownout = await route!.execute({ allocations });
       expect(
@@ -121,6 +131,6 @@ describe("Chapter 3 Power", () => {
       });
     }
 
-    expect((T as Record<string, unknown>).fuseSeatMs).toBe(600);
+    expect((T as Record<string, unknown>).fuseSeatMs).toBe(1_000);
   });
 });

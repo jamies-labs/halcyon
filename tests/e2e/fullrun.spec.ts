@@ -167,6 +167,7 @@ async function alignAndDecode(page: Page): Promise<void> {
 }
 
 async function purgeDrive(page: Page): Promise<Invocation> {
+  await page.getByTestId("ch5-crew-ready").click();
   let armed: Invocation | undefined;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const arm = await invoke(page, "arm_purge");
