@@ -15,7 +15,7 @@ You are the last awake crew member aboard the ISV _Halcyon_. Your agent becomes 
 3. Keep the game visible and follow the agent's crew handoffs. You operate the physical controls; the agent reads state and calls the ship's WebMCP tools.
 4. To verify that Chrome is exercising native WebMCP, open DevTools and evaluate `typeof document.modelContext`. It must return `"object"`. If it returns `"undefined"`, the page may still run through its fallback, but that is not a native WebMCP test.
 
-`Flight recorder — mission history (optional)` is a view-only recap of tool calls and crew actions. It does not need to be opened to finish the game. `Test console (optional — not part of normal play)` exposes the simulator when a WebMCP host is unavailable; it is a training and debugging aid, not proof that native WebMCP is active.
+`Flight recorder — mission history (optional)` is a view-only recap of tool calls and crew actions. It is not required to complete normal crew play. `Test console (optional — not part of normal play)` exposes the simulator when a WebMCP host is unavailable; it is a training and debugging aid, not proof that native WebMCP is active.
 
 For a short judging pass, open `https://halcyon-opal.vercel.app/?sim=1&fast=1&ch=N` and replace `N` with a chapter from `1` through `6`. This explicit training route seeds the selected chapter's prerequisites, shortens timers, and marks the run as a simulation. The plain URL always starts or resumes the real sequential campaign.
 

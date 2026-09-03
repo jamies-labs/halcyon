@@ -56,7 +56,9 @@ describe("HALCYON submission kit", () => {
       "Live URL",
       "Repository",
       "Video",
+      "https://halcyon-opal.vercel.app/",
       "https://github.com/jamies-labs/halcyon",
+      "https://youtu.be/5XmZJRSN-l0",
     ]) {
       expect(
         prose,
@@ -65,8 +67,12 @@ describe("HALCYON submission kit", () => {
     }
     expect(
       linksIn(prose),
-      "Devpost prose must not invent unpublished deployment or video URLs",
-    ).toEqual(["https://github.com/jamies-labs/halcyon"]);
+      "Devpost prose must include the verified production, repository, and video URLs",
+    ).toEqual([
+      "https://halcyon-opal.vercel.app/",
+      "https://github.com/jamies-labs/halcyon",
+      "https://youtu.be/5XmZJRSN-l0",
+    ]);
   });
 
   it("video-script-covers-every-required-demo-beat", () => {
@@ -95,17 +101,18 @@ describe("HALCYON submission kit", () => {
 
     for (const requiredText of [
       "https://webmcp.devpost.com/",
+      "https://halcyon-opal.vercel.app/",
+      "https://youtu.be/5XmZJRSN-l0",
       "https://github.com/jamies-labs/halcyon",
       "MIT license visible at the repository root",
       "README with run instructions and WebMCP notes",
-      "OWNER PASTE-IN: deployed live URL",
-      "OWNER PASTE-IN: public YouTube video URL",
-      "public YouTube",
-      "audio narration",
+      "Deployed live URL",
+      "Unlisted YouTube video URL",
+      "includes audio",
       "human-agent asymmetry story",
       "capability-per-chapter map",
-      "OWNER: register",
-      "OWNER: submit",
+      "Devpost project draft created",
+      "OWNER: accept the Official Rules and Devpost Terms, then submit",
     ]) {
       expect(checklist, `Checklist must include: ${requiredText}`).toContain(
         requiredText,
@@ -113,9 +120,11 @@ describe("HALCYON submission kit", () => {
     }
     expect(
       linksIn(checklist),
-      "Checklist must name only known Devpost and repository URLs until the owner publishes the other links",
+      "Checklist must name the verified Devpost, production, video, and repository URLs",
     ).toEqual([
       "https://webmcp.devpost.com/",
+      "https://halcyon-opal.vercel.app/",
+      "https://youtu.be/5XmZJRSN-l0",
       "https://github.com/jamies-labs/halcyon",
     ]);
   });
