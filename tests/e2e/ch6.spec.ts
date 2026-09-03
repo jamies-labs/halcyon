@@ -285,3 +285,34 @@ test("Burn exposes crew-only physical controls without bypassing physical comple
     ).not.toContain(toolName);
   }
 });
+
+test("blast shutters visibly announce when the crew should release", async ({
+  page,
+}) => {
+  const status = page.getByTestId("shutter-status");
+  await expect(status).toContainText(
+    "Hold each shutter until its control reads LATCHED · RELEASE",
+  );
+
+  await holdFor(page, "shutter-left", 300);
+  await expect(page.getByTestId("shutter-left")).toContainText(
+    "LATCHED · RELEASE",
+  );
+  await expect(page.getByTestId("shutter-left")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByTestId("shutter-left")).toHaveAccessibleName(
+    `LEFT blast shutter latched — release now — ${CREW_ONLY_LABEL}`,
+  );
+  await expect(status).toContainText("LEFT SHUTTER LATCHED · RELEASE NOW");
+
+  await holdFor(page, "shutter-right", 300);
+  await expect(page.getByTestId("shutter-right")).toContainText(
+    "LATCHED · RELEASE",
+  );
+  await expect(status).toContainText(
+    "BOTH SHUTTERS LATCHED · RELEASE NOW",
+  );
+  await expect(status).toContainText("shutters latched");
+});

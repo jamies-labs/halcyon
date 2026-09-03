@@ -399,35 +399,92 @@ export const ch6: Chapter = {
     tap.addEventListener("click", onTap);
     cleanup.push(() => tap.removeEventListener("click", onTap));
 
+    const shutterStatus = el(
+      "p",
+      {
+        class: "crew-action-status",
+        "data-testid": "shutter-status",
+        role: "status",
+        "aria-live": "polite",
+      },
+      "Hold each shutter until its control reads LATCHED · RELEASE.",
+    );
+    const resetShutters: Array<() => void> = [];
+    const updateShutterStatus = (): void => {
+      if (burn.shuttersLeft && burn.shuttersRight) {
+        shutterStatus.textContent =
+          "BOTH SHUTTERS LATCHED · RELEASE NOW. Reply “shutters latched” in agent chat.";
+        return;
+      }
+      if (burn.shuttersLeft) {
+        shutterStatus.textContent =
+          "LEFT SHUTTER LATCHED · RELEASE NOW. Then hold the right shutter.";
+        return;
+      }
+      if (burn.shuttersRight) {
+        shutterStatus.textContent =
+          "RIGHT SHUTTER LATCHED · RELEASE NOW. Then hold the left shutter.";
+        return;
+      }
+      shutterStatus.textContent =
+        "Hold each shutter until its control reads LATCHED · RELEASE.";
+    };
+
     const makeShutter = (side: "left" | "right"): HTMLButtonElement => {
+      const sideLabel = side.toUpperCase();
+      const idleText = `SHUTTER ${sideLabel} · HOLD`;
+      const idleAriaLabel = `Hold ${side} blast shutter until it latches — ${CREW_CONTROL_LABEL}`;
       const shutter = el(
         "button",
         {
           type: "button",
           class: "vent-handle",
           "data-testid": `shutter-${side}`,
-          "aria-label": `Hold ${side} blast shutter until it latches — ${CREW_CONTROL_LABEL}`,
+          "aria-label": idleAriaLabel,
+          "aria-pressed": "false",
         },
-        `SHUTTER ${side.toUpperCase()} — hold`,
+        idleText,
       );
       let holdTimer: number | null = null;
+      let latched = false;
       const stopHolding = (): void => {
         if (holdTimer === null) return;
         window.clearTimeout(holdTimer);
         holdTimer = null;
+        shutter.textContent = idleText;
+        shutterStatus.textContent = `${sideLabel} SHUTTER RELEASED TOO SOON · Hold until it reads LATCHED · RELEASE.`;
       };
       const startHolding = (): void => {
         startCountdownOnce(ctx, bar);
-        if (holdTimer !== null) return;
+        if (holdTimer !== null || latched) return;
+        shutter.textContent = `SHUTTER ${sideLabel} · KEEP HOLDING…`;
+        shutterStatus.textContent = `${sideLabel} SHUTTER HOLDING · Keep holding until LATCHED · RELEASE appears.`;
         holdTimer = window.setTimeout(() => {
           holdTimer = null;
+          latched = true;
           if (side === "left") burn.shuttersLeft = true;
           else burn.shuttersRight = true;
           shutter.classList.add("fuse-seated");
+          shutter.textContent = `SHUTTER ${sideLabel} · LATCHED · RELEASE`;
+          shutter.setAttribute(
+            "aria-label",
+            `${sideLabel} blast shutter latched — release now — ${CREW_CONTROL_LABEL}`,
+          );
+          shutter.setAttribute("aria-pressed", "true");
+          updateShutterStatus();
           ctx.audio.click();
           ctx.recorder.addHuman(`blast shutter ${side} latched`);
         }, T.fuseSeatMs);
       };
+      resetShutters.push(() => {
+        if (holdTimer !== null) window.clearTimeout(holdTimer);
+        holdTimer = null;
+        latched = false;
+        shutter.classList.remove("fuse-seated");
+        shutter.textContent = idleText;
+        shutter.setAttribute("aria-label", idleAriaLabel);
+        shutter.setAttribute("aria-pressed", "false");
+      });
       shutter.addEventListener("pointerdown", startHolding);
       shutter.addEventListener("pointerup", stopHolding);
       shutter.addEventListener("pointerleave", stopHolding);
@@ -459,8 +516,8 @@ export const ch6: Chapter = {
       bar.style.setProperty("--burn-progress", "1");
       tap.textContent = `PRIME 0/${TAPS_NEEDED}`;
       tap.classList.remove("beat");
-      leftShutter.classList.remove("fuse-seated");
-      rightShutter.classList.remove("fuse-seated");
+      for (const resetShutter of resetShutters) resetShutter();
+      updateShutterStatus();
       throttle.classList.remove("shaking", "fuse-seated");
     };
     const stopThrottle = (): void => {
@@ -509,6 +566,7 @@ export const ch6: Chapter = {
         rightShutter,
         throttle,
       ),
+      shutterStatus,
     );
     ctx.speaker.say(
       "Final checklist, crew. I call my steps, you call yours. Nobody rushes; the window is generous and so am I.",

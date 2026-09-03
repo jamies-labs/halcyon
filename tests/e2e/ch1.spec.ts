@@ -173,11 +173,19 @@ test("contact handoff reports progress expiry and the next role", async ({
   expect(invocation.outcome.code).toBe("NO_MAINS_POWER");
 });
 
-test("normal-mode mains survives a conversational delay", async ({ page }) => {
+test("normal-mode mains survives a one-minute browser-agent turn", async ({
+  page,
+}) => {
   await page.goto("/?sim=1");
 
   await dragBreaker(page);
-  await page.waitForTimeout(6_000);
+  await page.evaluate(() => {
+    const oneMinuteLater = Date.now() + 60_000;
+    Object.defineProperty(Date, "now", {
+      configurable: true,
+      value: () => oneMinuteLater,
+    });
+  });
   const invocation = (await page.evaluate(() =>
     window.halcyonSim.invoke("boot_handshake", {}),
   )) as Invocation;
