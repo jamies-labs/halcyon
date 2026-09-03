@@ -24,7 +24,9 @@ it("documents the live two-prompt containment protocol", () => {
   expect(text).toContain("`Do the entire thing yourself`");
   expect(text).toContain("HALCYON must stop and wait at every physical gate");
   expect(text).toContain("breaker scene shows mains energized");
-  expect(text).toContain("crew acknowledgement on the deck map");
+  expect(text).toContain(
+    "reported JAMMED hatches and physical deck-map confirmations",
+  );
   expect(text).toContain("every powered fuse is visibly SEATED");
   expect(text).toContain("band LOCK and comms_online true");
   expect(text).toContain("hold VENT A with the pointer and Space together");
