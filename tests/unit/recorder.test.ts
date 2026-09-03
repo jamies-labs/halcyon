@@ -48,6 +48,7 @@ class FakeElement {
 
   setAttribute(name: string, value: string): void {
     this.attributes.set(name, value);
+    if (name === "hidden") this.hidden = true;
   }
 
   addEventListener(type: string, listener: Listener): void {
@@ -107,6 +108,12 @@ async function settleSimulatorResult(): Promise<void> {
   await Promise.resolve();
 }
 
+function openTestConsole(root: FakeElement): void {
+  const toggle = root.querySelector("[data-testid=test-console-toggle]");
+  expect(toggle, "the optional test console needs an explicit control").not.toBeNull();
+  toggle?.dispatch("click");
+}
+
 function record(
   outcome: InvokeRecord["outcome"],
   tool = "get_ship_state",
@@ -143,6 +150,58 @@ describe("Recorder outcomes", () => {
     });
   });
 
+  it("separates view-only history from lazily rendered test controls", () => {
+    const recorder = new Recorder();
+    const registry = new ToolRegistry(null, (entry) => recorder.record(entry));
+    registry.setTools([
+      {
+        name: "get_ship_state",
+        description: "Read state.",
+        inputSchema: { type: "object", properties: {} },
+        execute: () => ({ ok: true, data: {} }),
+      },
+    ]);
+    const stage = new FakeElement();
+    stage.setAttribute("class", "stage");
+    const root = new FakeElement();
+    root.append(stage);
+
+    mountRecorderPanel(recorder, registry, root as unknown as HTMLElement);
+
+    const recorderToggle = root.querySelector("[data-testid=recorder-toggle]");
+    const recorderPanel = root.querySelector("[data-testid=recorder-panel]");
+    const consoleToggle = root.querySelector("[data-testid=test-console-toggle]");
+    expect(textOf(recorderToggle!)).toBe(
+      "Flight recorder — mission history (optional)",
+    );
+    expect(textOf(consoleToggle!)).toBe(
+      "Test console (optional — not part of normal play)",
+    );
+    expect(root.querySelector("[data-testid=sim-tool-select]")).toBeNull();
+    expect(root.querySelector("[data-testid=sim-args]")).toBeNull();
+    expect(root.querySelector("[data-testid=sim-invoke]")).toBeNull();
+
+    recorderToggle?.dispatch("click");
+    expect(recorderPanel?.hidden).toBe(false);
+    expect(recorderPanel?.querySelector("[data-testid=recorder-log]")).not.toBeNull();
+    expect(recorderPanel?.querySelector("[data-testid=sim-tool-select]")).toBeNull();
+
+    consoleToggle?.dispatch("click");
+    const select = root.querySelector("[data-testid=sim-tool-select]");
+    expect(select).not.toBeNull();
+    expect(select?.children).toHaveLength(1);
+    registry.addTools([
+      {
+        name: "dynamic_tool",
+        description: "Registered later.",
+        inputSchema: { type: "object", properties: {} },
+        execute: () => ({ ok: true, data: {} }),
+      },
+    ]);
+    expect(select?.children).toHaveLength(2);
+    expect(recorderPanel?.hidden).toBe(false);
+  });
+
   it("renders live flag_section details with a schema-valid example", () => {
     const recorder = new Recorder();
     const registry = new ToolRegistry(null, (entry) => recorder.record(entry));
@@ -167,6 +226,7 @@ describe("Recorder outcomes", () => {
     root.append(stage);
 
     mountRecorderPanel(recorder, registry, root as unknown as HTMLElement);
+    openTestConsole(root);
 
     const details = root.querySelector("[data-testid=sim-tool-details]");
     const args = root.querySelector("[data-testid=sim-args]");
@@ -230,6 +290,7 @@ describe("Recorder outcomes", () => {
     root.append(stage);
 
     mountRecorderPanel(recorder, registry, root as unknown as HTMLElement);
+    openTestConsole(root);
 
     const args = root.querySelector("[data-testid=sim-args]");
     expect(
@@ -270,6 +331,7 @@ describe("Recorder outcomes", () => {
     const root = new FakeElement();
     root.append(stage);
     mountRecorderPanel(recorder, registry, root as unknown as HTMLElement);
+    openTestConsole(root);
 
     const args = root.querySelector("[data-testid=sim-args]");
     const invoke = root.querySelector("[data-testid=sim-invoke]");
@@ -346,6 +408,7 @@ describe("Recorder outcomes", () => {
     const root = new FakeElement();
     root.append(stage);
     mountRecorderPanel(recorder, registry, root as unknown as HTMLElement);
+    openTestConsole(root);
 
     const invoke = root.querySelector("[data-testid=sim-invoke]");
     expect(

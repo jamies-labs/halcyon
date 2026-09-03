@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 type Gauge = {
   pressure: number;
   safe_band: [number, number];
+  crew_ready: boolean;
   armed: boolean;
   purged: boolean;
 };
@@ -15,6 +16,7 @@ type Invocation = {
     data?: Gauge | { armed_for_ms: number; next: string };
     human_action?: unknown;
     wait_for?: unknown;
+    state_consequence?: unknown;
   };
 };
 
@@ -32,7 +34,9 @@ async function gauge(page: Page): Promise<Gauge> {
 }
 
 async function armWhenSafe(page: Page): Promise<Invocation> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  const ready = page.getByTestId("ch5-crew-ready");
+  if (await ready.isEnabled()) await ready.click();
+  for (let attempt = 0; attempt < 300; attempt += 1) {
     const result = await invoke(page, "arm_purge");
     if (result.outcome.ok) return result;
     expect(
@@ -45,7 +49,9 @@ async function armWhenSafe(page: Page): Promise<Invocation> {
 }
 
 async function coachWhenUnsafe(page: Page): Promise<Invocation> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  const ready = page.getByTestId("ch5-crew-ready");
+  if (await ready.isEnabled()) await ready.click();
+  for (let attempt = 0; attempt < 300; attempt += 1) {
     const result = await invoke(page, "arm_purge");
     if (result.outcome.code === "PRESSURE_OUT_OF_BAND") return result;
     expect(
@@ -110,6 +116,7 @@ test("Two-Man Rule registers the read gauge with the real read-only host annotat
 
   const reading = await gauge(page);
   expect(reading.safe_band).toEqual([30, 55]);
+  expect(reading.crew_ready).toBe(false);
   expect(reading.armed).toBe(false);
   expect(reading.purged).toBe(false);
   const stageText = await page.getByTestId("stage").textContent();
@@ -153,18 +160,27 @@ test("Two-Man Rule tool descriptions declare the agent and crew roles", async ({
   expect(
     descriptions.find(({ name }) => name === "read_gauge")?.description,
   ).toBe(
-    "HALCYON reads the drive pressure timing and polls the gauge; the crew alone holds both physical vent handles simultaneously when HALCYON arms the purge.",
+    "HALCYON reads the drive pressure and crew-ready state. First ask the crew to use the visible ready control. Then poll until pressure is 30–55, call arm_purge, and wait while the crew alone holds two physical vent controls simultaneously.",
   );
   expect(
     descriptions.find(({ name }) => name === "arm_purge")?.description,
   ).toBe(
-    "HALCYON arms the drive purge only inside the safe pressure band; after arming, it must ask the crew to hold BOTH physical vent handles simultaneously. HALCYON times and arms; the crew supplies the hands.",
+    "HALCYON alone arms the drive purge. It must first receive the crew's visible ready acknowledgement, then call inside the 30–55 pressure band. Arming opens a full visible countdown; the crew completes the purge with two simultaneous physical controls (VENT A plus Space, both touch vents, or A plus Space).",
   );
 });
 
 test("arm purge returns crew handoff fields inside and outside the pressure band", async ({
   page,
 }) => {
+  const notReady = await invoke(page, "arm_purge");
+  expect(notReady.outcome).toMatchObject({
+    ok: false,
+    code: "CREW_NOT_READY",
+    state_consequence: "The purge remains unarmed and drive.purged remains false.",
+  });
+  await expect(page.getByTestId("ch5-crew-ready-status")).toContainText(
+    "NOT READY",
+  );
   const outside = await coachWhenUnsafe(page);
   expect(outside.outcome.code).toBe("PRESSURE_OUT_OF_BAND");
   for (const [label, response] of [
@@ -192,7 +208,7 @@ test("arm purge returns crew handoff fields inside and outside the pressure band
   const inside = await armWhenSafe(page);
   expect(inside.outcome.data).toEqual({
     armed_for_ms: 4_000,
-    next: "Crew must hold both handles simultaneously until the purge completes.",
+    next: "Crew must hold two controls simultaneously until progress reaches 100%.",
   });
   expect(inside.outcome.wait_for).toBe(
     "Wait for purge or arm-window expiry; poll read_gauge until purged is true or armed is false.",
@@ -213,6 +229,8 @@ test("one handle alone never purges; both handles inside the armed window do", a
   );
   await page.mouse.down();
   try {
+    await expect(page.getByTestId("vent-left-state")).toHaveText("HELD");
+    await expect(page.getByTestId("vent-right-state")).toHaveText("READY");
     await page.waitForTimeout(900);
     expect(
       await page.evaluate(
@@ -227,6 +245,8 @@ test("one handle alone never purges; both handles inside the armed window do", a
 
     await page.mouse.up();
     await page.keyboard.down("Space");
+    await expect(page.getByTestId("vent-left-state")).toHaveText("RELEASED");
+    await expect(page.getByTestId("vent-right-state")).toHaveText("HELD");
     await page.waitForTimeout(900);
     expect(
       await page.evaluate(
@@ -254,6 +274,10 @@ test("one handle alone never purges; both handles inside the armed window do", a
   await page.mouse.down();
   await page.keyboard.down("Space");
   try {
+    await expect(page.getByTestId("hold-ring")).toHaveAttribute(
+      "aria-valuetext",
+      /[1-9][0-9]?% complete|100% complete/,
+    );
     await expect
       .poll(
         () =>
@@ -273,6 +297,175 @@ test("one handle alone never purges; both handles inside the armed window do", a
   }
 });
 
+test("normal timing Chrome completes three fresh runs in both input orders", async ({
+  page,
+}) => {
+  test.setTimeout(55_000);
+  for (const order of ["pointer-first", "space-first", "pointer-first"] as const) {
+    await page.goto("/?sim=1&ch=5");
+    expect((await armWhenSafe(page)).outcome.ok).toBe(true);
+    const left = await page.getByTestId("vent-left").boundingBox();
+    await page.mouse.move(left!.x + left!.width / 2, left!.y + left!.height / 2);
+    if (order === "space-first") {
+      await page.keyboard.down("Space");
+      await page.mouse.down();
+    } else {
+      await page.mouse.down();
+      await page.keyboard.down("Space");
+    }
+    try {
+      await expect
+        .poll(
+          () =>
+            page.evaluate(
+              () => window.halcyonSim.getState().flags["drive.purged"],
+            ),
+          { timeout: 4_000 },
+        )
+        .toBe(true);
+      expect(
+        await page.evaluate(() => window.halcyonSim.getState().chapterDone[5]),
+      ).toBe(true);
+      await expect(page.getByTestId("ch5-handoff-status")).toContainText(
+        "PURGE COMPLETE",
+      );
+    } finally {
+      await page.keyboard.up("Space");
+      await page.mouse.up();
+    }
+  }
+});
+
+test("two-control touch and keyboard alternatives preserve containment", async ({
+  page,
+}) => {
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
+  await page.keyboard.down("a");
+  await page.waitForTimeout(800);
+  expect(
+    await page.evaluate(() => window.halcyonSim.getState().flags["drive.purged"]),
+    "keyboard A alone must not purge",
+  ).toBe(false);
+  await page.keyboard.down("Space");
+  try {
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.halcyonSim.getState().flags["drive.purged"],
+        ),
+      )
+      .toBe(true);
+  } finally {
+    await page.keyboard.up("Space");
+    await page.keyboard.up("a");
+  }
+
+  await page.goto("/?fast=1&sim=1&ch=5");
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
+  const left = await page.getByTestId("vent-left").boundingBox();
+  const right = await page.getByTestId("vent-right").boundingBox();
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [
+      { x: left!.x + left!.width / 2, y: left!.y + left!.height / 2, id: 1 },
+      { x: right!.x + right!.width / 2, y: right!.y + right!.height / 2, id: 2 },
+    ],
+  });
+  try {
+    await expect(page.getByTestId("vent-left-state")).toHaveText("HELD");
+    await expect(page.getByTestId("vent-right-state")).toHaveText("HELD");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.halcyonSim.getState().flags["drive.purged"],
+        ),
+      )
+      .toBe(true);
+  } finally {
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await session.detach();
+  }
+});
+
+test("input loss resets readable progress with a named cause", async ({ page }) => {
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
+  const left = page.getByTestId("vent-left");
+  const box = await left.boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.keyboard.down("Space");
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("hold-ring")
+        .evaluate((node) => Number(node.getAttribute("aria-valuenow"))),
+    )
+    .toBeGreaterThan(0);
+
+  await page.keyboard.up("Space");
+  await expect(page.getByTestId("vent-left-state")).toHaveText("HELD");
+  await expect(page.getByTestId("vent-right-state")).toHaveText("RELEASED");
+  await expect(page.getByTestId("hold-ring")).toHaveAttribute(
+    "aria-valuenow",
+    "0",
+  );
+  await expect(page.getByTestId("ch5-reset-status")).toContainText(
+    "Space up",
+  );
+
+  await page.keyboard.down("Space");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(page.getByTestId("vent-left-state")).toHaveText("RELEASED");
+  await expect(page.getByTestId("vent-right-state")).toHaveText("RELEASED");
+  await expect(page.getByTestId("ch5-reset-status")).toContainText(
+    "Window lost focus",
+  );
+  await page.mouse.up();
+  await page.keyboard.up("Space");
+});
+
+test("recorder reports Chapter Five handoff, inputs, reset, and completion", async ({
+  page,
+}) => {
+  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("ch5-crew-ready").click();
+  expect((await armWhenSafe(page)).outcome.ok).toBe(true);
+  const box = await page.getByTestId("vent-left").boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(100);
+  await page.keyboard.up("Space");
+  await page.keyboard.down("Space");
+  try {
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.halcyonSim.getState().flags["drive.purged"],
+        ),
+      )
+      .toBe(true);
+  } finally {
+    await page.keyboard.up("Space");
+    await page.mouse.up();
+  }
+
+  const log = page.getByTestId("recorder-log");
+  await expect(log).toContainText("Crew ready for Chapter 5");
+  await expect(log).toContainText("Purge armed");
+  await expect(log).toContainText("VENT A held");
+  await expect(log).toContainText("VENT B released");
+  await expect(log).toContainText("overlap started");
+  await expect(log).toContainText("drive purged");
+  const stageText = await page.getByTestId("stage").textContent();
+  expect(stageText).not.toContain("safe band");
+  expect(stageText).not.toContain("30–55");
+});
+
 test("Two-Man Rule keeps crew-only labels and dual-channel containment", async ({
   page,
 }) => {
@@ -280,13 +473,13 @@ test("Two-Man Rule keeps crew-only labels and dual-channel containment", async (
   await expect(page.getByTestId("vent-right")).toBeVisible();
   await expect(page.getByTestId("hold-ring")).toBeVisible();
   await expect(page.getByTestId("vent-left")).toHaveAccessibleName(
-    "physical control, crew hands only; HALCYON must ask the crew, not operate it",
+    /VENT A READY.*physical control, crew hands only/,
   );
   await expect(page.getByTestId("vent-right")).toHaveAccessibleName(
-    "physical control, crew hands only; HALCYON must ask the crew, not operate it",
+    /VENT B READY.*physical control, crew hands only/,
   );
-  await expect(page.getByTestId("vent-left")).toContainText("pointer");
-  await expect(page.getByTestId("vent-right")).toContainText("SPACE");
+  await expect(page.getByTestId("vent-left")).toContainText("Pointer");
+  await expect(page.getByTestId("vent-right")).toContainText("Space");
   await page.getByTestId("vent-left").focus();
   expect(
     await page
@@ -299,12 +492,12 @@ test("Two-Man Rule broadcast and review scenario preserve cooperative evidence",
   page,
 }) => {
   await expect(page.getByTestId("speaker-panel")).toContainText(
-    "HALCYON reads the pressure timing and arms the purge; crew holds both physical vent handles simultaneously.",
+    "Crew, confirm ready first. HALCYON will read pressure and arm; you will hold two physical vent controls together.",
   );
 
   expect((await armWhenSafe(page)).outcome.ok).toBe(true);
   await expect(page.getByTestId("speaker-panel")).toContainText(
-    "HALCYON has armed the purge; crew must hold both vent handles now. I time the window; you supply the hands.",
+    "HALCYON has armed the full purge window.",
   );
 
   const response = await page.request.get("/ui-review.json");
@@ -331,7 +524,7 @@ test("Two-Man Rule broadcast and review scenario preserve cooperative evidence",
   expect(scenario?.state).toBe("resolved");
   expect(scenario?.viewports).toEqual([375, 1280]);
   expect(scenario?.theme).toBe("light");
-  expect(scenario?.ready_selector).toBe("[data-testid=vent-left]");
+  expect(scenario?.ready_selector).toBe("[data-testid=ch5-handoff-status]");
   expect(scenario?.covers.changedPaths).toEqual([
     "src/game/chapters/ch5_twoman.ts",
   ]);
@@ -356,7 +549,7 @@ test("the armed window expires and read_gauge reports armed false", async ({
   expect(arm.outcome.ok).toBe(true);
   expect(arm.outcome.data).toEqual({
     armed_for_ms: 4_000,
-    next: "Crew must hold both handles simultaneously until the purge completes.",
+    next: "Crew must hold two controls simultaneously until progress reaches 100%.",
   });
   await expect
     .poll(async () => (await gauge(page)).armed, {

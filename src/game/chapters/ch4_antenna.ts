@@ -15,12 +15,25 @@ let replyAt: number | null = null;
 let decoderOffsetKhz = 0;
 let meterTimer: number | null = null;
 let cleanup: Array<() => void> = [];
+let dishStatus: HTMLElement | null = null;
+let strengthMeter: HTMLProgressElement | null = null;
+let lockProgress: HTMLProgressElement | null = null;
+let holdStatus: HTMLElement | null = null;
+let dishKnob: HTMLElement | null = null;
 
 function alignmentError(): number {
   return Math.hypot(
     position.azimuth - TARGET.azimuth,
     position.elevation - TARGET.elevation,
   );
+}
+
+function signalBand(error = alignmentError()): "FAR" | "NEAR" | "LOCK" {
+  return error < LOCK_TOLERANCE ? "LOCK" : error < 25 ? "NEAR" : "FAR";
+}
+
+function signalStrength(error = alignmentError()): number {
+  return Math.round(Math.max(0, Math.min(100, 100 - error * 2)));
 }
 
 function checksumQuality(): number {
@@ -162,6 +175,17 @@ function dynamicCommsTools(ctx: ChapterCtx): ToolDef[] {
 function lockAntenna(ctx: ChapterCtx): void {
   if (locked) return;
   locked = true;
+  if (dishStatus) dishStatus.textContent = "LOCK — antenna alignment complete";
+  if (strengthMeter) strengthMeter.value = 100;
+  if (lockProgress) lockProgress.value = 100;
+  if (holdStatus)
+    holdStatus.textContent =
+      "Crew action complete. HALCYON: send distress, wait for the reply, tune the decoder, then decode it.";
+  dishKnob?.setAttribute("aria-valuenow", "100");
+  dishKnob?.setAttribute(
+    "aria-valuetext",
+    "LOCK. Antenna alignment complete; HALCYON now operates communications.",
+  );
   ctx.audio.stopStatic();
   ctx.audio.chime();
   ctx.store.update((state) => {
@@ -185,6 +209,11 @@ function resetChapterState(): void {
   lockStartedAt = null;
   replyAt = null;
   decoderOffsetKhz = 0;
+  dishStatus = null;
+  strengthMeter = null;
+  lockProgress = null;
+  holdStatus = null;
+  dishKnob = null;
 }
 
 export const ch4: Chapter = {
@@ -226,14 +255,50 @@ export const ch4: Chapter = {
       "data-testid": "dish-readout",
       "aria-live": "polite",
     });
+    dishStatus = el(
+      "p",
+      {
+        class: "dish-status",
+        "data-testid": "dish-status",
+        "aria-live": "polite",
+      },
+      "FAR",
+    );
+    strengthMeter = el("progress", {
+      class: "signal-strength",
+      "data-testid": "signal-strength",
+      max: "100",
+      value: "0",
+      "aria-label": "Antenna signal strength",
+    });
+    lockProgress = el("progress", {
+      class: "antenna-lock-progress",
+      "data-testid": "antenna-lock-progress",
+      max: "100",
+      value: "0",
+      "aria-label": "Antenna lock hold progress",
+    });
+    holdStatus = el(
+      "p",
+      {
+        class: "antenna-hold-status",
+        "data-testid": "antenna-hold-status",
+        "aria-live": "assertive",
+      },
+      "Sweep slowly. When strength peaks and LOCK appears, hold steady for 1.5 seconds.",
+    );
     const knob = el("div", {
       class: "dish-knob",
       "data-testid": "dish-knob",
       tabindex: "0",
-      role: "button",
+      role: "slider",
+      "aria-valuemin": "0",
+      "aria-valuemax": "100",
+      "aria-valuenow": "0",
       "aria-label":
-        "physical control, crew hands only; HALCYON must ask the crew, not operate it",
+        "Antenna dish signal alignment — physical control, crew hands only; HALCYON must ask the crew, not operate it",
     });
+    dishKnob = knob;
     const pad = el(
       "div",
       {
@@ -245,10 +310,68 @@ export const ch4: Chapter = {
       knob,
     );
 
+    let previousStrength = signalStrength();
+    const updateFeedback = (): void => {
+      if (locked) return;
+      const error = alignmentError();
+      const band = signalBand(error);
+      const strength = signalStrength(error);
+      const trend =
+        strength > previousStrength
+          ? "RISING"
+          : strength < previousStrength
+            ? "FALLING"
+            : "STEADY";
+      previousStrength = strength;
+      if (strengthMeter) strengthMeter.value = strength;
+      knob.setAttribute("aria-valuenow", String(strength));
+
+      if (band === "LOCK") {
+        if (lockStartedAt === null) lockStartedAt = Date.now();
+        const progress = Math.min(
+          1,
+          (Date.now() - lockStartedAt) / T.lockHoldMs,
+        );
+        if (dishStatus) dishStatus.textContent = "LOCK — hold steady";
+        readout.textContent = `Peak signal · ${strength}% · HOLD STEADY`;
+        if (lockProgress) lockProgress.value = Math.round(progress * 100);
+        if (holdStatus)
+          holdStatus.textContent = `Lock hold ${Math.round(progress * 100)}% — keep the dish still.`;
+        knob.setAttribute(
+          "aria-valuetext",
+          `LOCK. Signal strength ${strength} percent. Hold progress ${Math.round(progress * 100)} percent.`,
+        );
+        if (progress >= 1) lockAntenna(ctx);
+        return;
+      }
+
+      if (lockStartedAt !== null) {
+        lockStartedAt = null;
+        if (holdStatus)
+          holdStatus.textContent =
+            "Lock hold reset: the dish left peak strength. Return to LOCK and hold steady.";
+        ctx.recorder.addHuman("Antenna lock hold reset: dish moved off peak.");
+      } else if (holdStatus) {
+        holdStatus.textContent =
+          band === "NEAR"
+            ? "NEAR: use small movements or Shift + Arrow keys. Follow rising strength."
+            : "FAR: sweep slowly toward rising strength.";
+      }
+      if (lockProgress) lockProgress.value = 0;
+      if (dishStatus) dishStatus.textContent = band;
+      readout.textContent =
+        band === "NEAR"
+          ? `Fine signal · ${strength}% · ${trend}`
+          : `AZ ~${Math.round(position.azimuth / 10) * 10}° EL ~${Math.round(position.elevation / 10) * 10}° · FAR · ${strength}%`;
+      knob.setAttribute(
+        "aria-valuetext",
+        `${band}. Signal strength ${strength} percent, ${trend.toLowerCase()}.`,
+      );
+    };
     const placeKnob = (): void => {
       knob.style.left = `${(position.azimuth / 180) * 100}%`;
       knob.style.top = `${(position.elevation / 90) * 100}%`;
-      readout.textContent = `AZ ~${Math.round(position.azimuth / 10) * 10}° EL ~${Math.round(position.elevation / 10) * 10}° (coarse)`;
+      updateFeedback();
     };
     const moveToPointer = (event: PointerEvent): void => {
       const bounds = pad.getBoundingClientRect();
@@ -277,7 +400,6 @@ export const ch4: Chapter = {
     };
     const pointerUp = (event: PointerEvent): void => {
       if (event.pointerId !== pointerId) return;
-      knob.releasePointerCapture?.(event.pointerId);
       pointerId = null;
     };
     const keyDown = (event: KeyboardEvent): void => {
@@ -294,7 +416,8 @@ export const ch4: Chapter = {
       const adjustment = adjustments[event.key];
       if (!adjustment) return;
       event.preventDefault();
-      const [axis, delta] = adjustment;
+      const [axis, coarseDelta] = adjustment;
+      const delta = event.shiftKey ? Math.sign(coarseDelta) * 0.5 : coarseDelta;
       const maximum = axis === "azimuth" ? 180 : 90;
       position[axis] = Math.max(0, Math.min(maximum, position[axis] + delta));
       placeKnob();
@@ -305,12 +428,14 @@ export const ch4: Chapter = {
     knob.addEventListener("pointermove", pointerMove);
     knob.addEventListener("pointerup", pointerUp);
     knob.addEventListener("pointercancel", pointerUp);
+    knob.addEventListener("lostpointercapture", pointerUp);
     knob.addEventListener("keydown", keyDown);
     cleanup.push(() => {
       knob.removeEventListener("pointerdown", pointerDown);
       knob.removeEventListener("pointermove", pointerMove);
       knob.removeEventListener("pointerup", pointerUp);
       knob.removeEventListener("pointercancel", pointerUp);
+      knob.removeEventListener("lostpointercapture", pointerUp);
       knob.removeEventListener("keydown", keyDown);
     });
 
@@ -321,12 +446,7 @@ export const ch4: Chapter = {
         Math.min(1, error / 60),
         200 + Math.max(0, 1 - error / 120) * 900,
       );
-      if (error < LOCK_TOLERANCE) {
-        if (lockStartedAt === null) lockStartedAt = Date.now();
-        else if (Date.now() - lockStartedAt >= T.lockHoldMs) lockAntenna(ctx);
-      } else {
-        lockStartedAt = null;
-      }
+      updateFeedback();
     }, 100);
     cleanup.push(() => {
       if (meterTimer !== null) window.clearInterval(meterTimer);
@@ -337,12 +457,25 @@ export const ch4: Chapter = {
     placeKnob();
     ctx.stage.append(
       el(
-        "p",
-        { class: "chapter-brief" },
-        "The dish moves by hand. The bearing readout is coarse; listen for the static pitch climbing as you close in, then hold the sweet spot.",
+        "section",
+        { class: "crew-action antenna-crew-action", "data-testid": "crew-action-ch4" },
+        el("h2", {}, "CREW ACTION"),
+        el(
+          "p",
+          {},
+          "Drag left/right for azimuth and up/down for elevation. Keyboard: Arrow keys; hold Shift for fine steps. Sweep slowly toward rising strength, then hold steady when LOCK appears.",
+        ),
       ),
       pad,
       readout,
+      el(
+        "section",
+        { class: "antenna-feedback", "aria-label": "Antenna alignment feedback" },
+        dishStatus!,
+        el("label", {}, "Signal strength", strengthMeter!),
+        el("label", {}, "Lock hold", lockProgress!),
+        holdStatus!,
+      ),
     );
     ctx.speaker.say(
       "HALCYON reads the coarse meter and operates the comms tools; crew performs the fine physical antenna alignment. My signal meter only says FAR, NEAR, or LOCK. Sweep slowly.",

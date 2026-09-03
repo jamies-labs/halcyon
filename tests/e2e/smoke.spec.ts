@@ -289,13 +289,26 @@ test("seeded chapter jump registers global tools and delivers broadcasts", async
   );
 });
 
-test("recorder panel lists a selected manual registry call", async ({
+test("optional recorder stays view-only and test controls mount on demand", async ({
   page,
 }) => {
   await page.goto("/?fast=1&sim=1&ch=3");
 
+  await expect(page.getByTestId("sim-tool-select")).toHaveCount(0);
+  await expect(page.getByTestId("sim-args")).toHaveCount(0);
+  await expect(page.getByTestId("sim-invoke")).toHaveCount(0);
+  await expect(page.getByTestId("recorder-toggle")).toHaveText(
+    "Flight recorder — mission history (optional)",
+  );
+  await expect(page.getByTestId("test-console-toggle")).toHaveText(
+    "Test console (optional — not part of normal play)",
+  );
   await page.getByTestId("recorder-toggle").click();
   await expect(page.getByTestId("recorder-panel")).toBeVisible();
+  await expect(
+    page.getByTestId("recorder-panel").getByTestId("sim-tool-select"),
+  ).toHaveCount(0);
+  await page.getByTestId("test-console-toggle").click();
   await page.getByTestId("sim-tool-select").selectOption("get_ship_state");
   await page.getByTestId("sim-invoke").click();
 
@@ -308,7 +321,7 @@ test("simulator shows selected tool description schema and valid example", async
   page,
 }) => {
   await page.goto("/?fast=1&sim=1&ch=2");
-  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("test-console-toggle").click();
   await page.getByTestId("sim-tool-select").selectOption("flag_section");
 
   const details = page.getByTestId("sim-tool-details");
@@ -326,7 +339,7 @@ test("simulator renders invalid JSON and schema validation outcomes", async ({
   page,
 }) => {
   await page.goto("/?fast=1&sim=1&ch=2");
-  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("test-console-toggle").click();
   await page.getByTestId("sim-tool-select").selectOption("flag_section");
 
   const result = page.getByTestId("sim-result");
@@ -351,7 +364,7 @@ test("simulator renders no mains and successful state outcomes", async ({
   page,
 }) => {
   await page.goto("/?fast=1&sim=1&ch=1");
-  await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("test-console-toggle").click();
   await page.getByTestId("sim-tool-select").selectOption("boot_handshake");
   await page.getByTestId("sim-invoke").click();
 
@@ -382,6 +395,7 @@ test("recorder renders complete safe invocation outcomes", async ({ page }) => {
 
   const log = page.getByTestId("recorder-log");
   await page.getByTestId("recorder-toggle").click();
+  await page.getByTestId("test-console-toggle").click();
   await page.getByTestId("sim-tool-select").selectOption("get_ship_state");
   await page.getByTestId("sim-invoke").click();
 

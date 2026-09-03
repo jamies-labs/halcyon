@@ -17,3 +17,19 @@ it("documents the explicit ephemeral simulator training mode", () => {
     "simulator sessions do not alter saved campaign progress",
   );
 });
+
+it("documents the optional view-only flight recorder", () => {
+  const readme = readmes["/README.md"];
+  expect(readme).toContain("Flight recorder — mission history (optional)");
+  expect(readme).toContain("view-only recap");
+  expect(readme).toContain("not required to complete normal crew play");
+});
+
+it("documents the separately optional test console", () => {
+  const readme = readmes["/README.md"];
+  expect(readme).toContain("Test console (optional — not part of normal play)");
+  expect(readme).toContain("`?sim=1&ch=N`");
+  expect(readme).toContain(
+    "simulator sessions do not alter saved campaign progress",
+  );
+});

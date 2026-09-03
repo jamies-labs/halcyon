@@ -258,6 +258,76 @@ test("acknowledging an unflagged section does not complete Manifest", async ({
   });
 });
 
+test("hatch discovery starts untested and reveals only the activated result", async ({
+  page,
+}) => {
+  await expect(page.getByTestId("crew-action-ch2")).toContainText(
+    "CREW ACTION",
+  );
+  await expect(page.getByTestId("crew-action-ch2")).toContainText(
+    "Tap S1-S6 once. Working hatches show MOVES; stuck hatches show JAMMED. Then reply to your agent chat with the jammed section numbers.",
+  );
+  for (const id of ["s1", "s2", "s3", "s4", "s5", "s6"]) {
+    await expect(page.getByTestId(`hatch-state-${id}`)).toHaveText("UNTESTED");
+    const label = await page.locator(`[data-section=${id}]`).getAttribute("aria-label");
+    expect(label).toContain("UNTESTED");
+    expect(label).not.toMatch(/MOVES|JAMMED|hatch open|hatch jammed/);
+  }
+
+  for (const [id, result] of [
+    ["s1", "MOVES"],
+    ["s2", "MOVES"],
+    ["s3", "JAMMED"],
+    ["s4", "MOVES"],
+    ["s5", "MOVES"],
+    ["s6", "JAMMED"],
+  ] as const) {
+    await page.locator(`[data-section=${id}]`).click();
+    await expect(page.getByTestId(`hatch-state-${id}`)).toHaveText(result);
+  }
+  await expect(page.getByTestId("speaker-panel")).toContainText(
+    "tell me here which sections are jammed",
+  );
+});
+
+test("earlier crew hatch tests satisfy later reachable flags without a duplicate tap", async ({
+  page,
+}) => {
+  for (const id of ["s1", "s2", "s3", "s4", "s5", "s6"]) {
+    await page.locator(`[data-section=${id}]`).click();
+  }
+
+  for (const sectionId of ["s2", "s4", "s5"]) {
+    const invocation = (await page.evaluate(
+      (id) =>
+        window.halcyonSim.invoke("flag_section", {
+          section_id: id,
+          priority: 1,
+        }),
+      sectionId,
+    )) as Invocation;
+    expect(invocation.outcome).toMatchObject({
+      ok: true,
+      human_action:
+        "No repeated crew action is needed; HALCYON applied the crew's earlier physical hatch test to this flag.",
+      wait_for:
+        "The earlier crew test acknowledged this section; continue triage with the remaining damaged reachable sections.",
+      data: {
+        section_id: sectionId,
+        flagged: true,
+        acknowledged: true,
+        applied: "earlier crew hatch test",
+      },
+    });
+  }
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.halcyonSim.getState().chapterDone[2]),
+    )
+    .toBe(true);
+});
+
 test("Manifest exposes crew-only deck controls without losing triage completion", async ({
   page,
 }) => {
@@ -326,12 +396,10 @@ test("chapter select renders the six-section Manifest deck map", async ({
   await expect(page.locator("[data-section]")).toHaveCount(6);
   await expect(page.locator('[data-section="s2"]')).toBeVisible();
   await expect(page.locator('[data-section="s6"]')).toBeVisible();
-  await expect(
-    page.locator('[data-section="s2"] .hatch-dot-open'),
-  ).toBeVisible();
-  await expect(
-    page.locator('[data-section="s6"] .hatch-dot-jammed'),
-  ).toBeVisible();
+  await expect(page.getByTestId("hatch-state-s2")).toHaveText("UNTESTED");
+  await expect(page.getByTestId("hatch-state-s6")).toHaveText("UNTESTED");
+  await page.locator('[data-section="s6"]').click();
+  await expect(page.getByTestId("hatch-state-s6")).toHaveText("JAMMED");
 });
 
 test("Manifest broadcast and review selector preserve cooperative evidence", async ({
@@ -339,7 +407,7 @@ test("Manifest broadcast and review selector preserve cooperative evidence", asy
 }) => {
   await expect(page.locator("[data-section=s2]")).toBeVisible();
   await expect(page.getByTestId("speaker-panel")).toContainText(
-    "HALCYON reads the damage manifest; crew confirms reachable hatch sections on the deck map.",
+    "Crew, tap every hatch once, then tell me here which sections are jammed. I will update the manifest.",
   );
 
   for (const sectionId of ["s2", "s4", "s5"]) {

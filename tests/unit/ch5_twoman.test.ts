@@ -16,6 +16,7 @@ class FakeElement {
   readonly attributes = new Map<string, string>();
   readonly classList = { toggle: vi.fn() };
   readonly style = { setProperty: vi.fn() };
+  textContent = "";
 
   append(...children: FakeElement[]): void {
     this.children.push(...children);
@@ -117,11 +118,20 @@ describe("Chapter 5 Two-Man Rule", () => {
       "physical control, crew hands only; HALCYON must ask the crew, not operate it";
 
     expect(read.description).toBe(
-      "HALCYON reads the drive pressure timing and polls the gauge; the crew alone holds both physical vent handles simultaneously when HALCYON arms the purge.",
+      "HALCYON reads the drive pressure and crew-ready state. First ask the crew to use the visible ready control. Then poll until pressure is 30–55, call arm_purge, and wait while the crew alone holds two physical vent controls simultaneously.",
     );
     expect(arm.description).toBe(
-      "HALCYON arms the drive purge only inside the safe pressure band; after arming, it must ask the crew to hold BOTH physical vent handles simultaneously. HALCYON times and arms; the crew supplies the hands.",
+      "HALCYON alone arms the drive purge. It must first receive the crew's visible ready acknowledgement, then call inside the 30–55 pressure band. Arming opens a full visible countdown; the crew completes the purge with two simultaneous physical controls (VENT A plus Space, both touch vents, or A plus Space).",
     );
+
+    expect(await arm.execute({})).toMatchObject({
+      ok: false,
+      code: "CREW_NOT_READY",
+      state_consequence: "The purge remains unarmed and drive.purged remains false.",
+    });
+
+    const ready = stage.children[0]?.children[2];
+    ready?.dispatch("click", new Event("click"));
 
     vi.setSystemTime(3_000);
     const outside = await arm.execute({});
@@ -129,7 +139,7 @@ describe("Chapter 5 Two-Man Rule", () => {
       ok: false,
       code: "PRESSURE_OUT_OF_BAND",
       human_action:
-        "Ask the crew to keep both physical vent handles ready, then hold them simultaneously only after HALCYON arms the purge.",
+        "Ask the ready crew to keep both physical vent controls clear until HALCYON arms the purge.",
       wait_for:
         "Wait for read_gauge to report pressure inside the safe band before calling arm_purge again.",
     });
@@ -141,19 +151,19 @@ describe("Chapter 5 Two-Man Rule", () => {
     expect(inside).toMatchObject({
       ok: true,
       human_action:
-        "Ask the crew to hold both physical vent handles simultaneously: pointer on VENT A and Space on VENT B.",
+        "Ask the crew to start a fresh simultaneous two-control hold: VENT A plus Space, both touch vents, or keyboard A plus Space.",
       wait_for:
         "Wait for purge or arm-window expiry; poll read_gauge until purged is true or armed is false.",
     });
     expect(context.speaker.say).toHaveBeenLastCalledWith(
-      "HALCYON has armed the purge; crew must hold both vent handles now. I time the window; you supply the hands.",
+      "HALCYON has armed the full purge window. Crew: hold VENT A plus SPACE, both touch vents, or A plus SPACE until progress reaches 100%.",
       "urgent",
     );
 
-    const left = stage.children[1]?.children[0];
-    const right = stage.children[1]?.children[2];
-    expect(left?.attributes.get("aria-label")).toBe(crewOnlyLabel);
-    expect(right?.attributes.get("aria-label")).toBe(crewOnlyLabel);
+    const left = stage.children[3]?.children[0];
+    const right = stage.children[3]?.children[2];
+    expect(left?.attributes.get("aria-label")).toContain(crewOnlyLabel);
+    expect(right?.attributes.get("aria-label")).toContain(crewOnlyLabel);
     chapter.unmount();
   });
 
@@ -210,9 +220,11 @@ describe("Chapter 5 Two-Man Rule", () => {
     const arm = chapter!
       .tools(context)
       .find((tool) => tool.name === "arm_purge");
-    const left = stage.children[1]?.children[0];
+    const ready = stage.children[0]?.children[2];
+    const left = stage.children[3]?.children[0];
 
     expect(left, "the mounted surface must expose the left vent").toBeDefined();
+    ready?.dispatch("click", new Event("click"));
     expect((await arm!.execute({})).ok).toBe(true);
     left!.dispatch("pointerdown", { pointerId: 1 } as PointerEvent);
     dispatchWindow("keydown", {
@@ -233,6 +245,23 @@ describe("Chapter 5 Two-Man Rule", () => {
     ).toBe(false);
 
     await vi.advanceTimersByTimeAsync(100);
+    expect(
+      context.store.get().flags["drive.purged"],
+      "re-arming must clear pre-held inputs instead of carrying them forward",
+    ).toBe(false);
+
+    left!.dispatch("pointerup", { pointerId: 1, type: "pointerup" } as PointerEvent);
+    dispatchWindow("keyup", {
+      code: "Space",
+      preventDefault: vi.fn(),
+    } as unknown as KeyboardEvent);
+    left!.dispatch("pointerdown", { pointerId: 2 } as PointerEvent);
+    dispatchWindow("keydown", {
+      code: "Space",
+      repeat: false,
+      preventDefault: vi.fn(),
+    } as unknown as KeyboardEvent);
+    await vi.advanceTimersByTimeAsync(T.holdMs + 100);
     expect(context.store.get().flags["drive.purged"]).toBe(true);
     expect(
       context.complete,
@@ -293,6 +322,7 @@ describe("Chapter 5 Two-Man Rule", () => {
     const arm = tools.find((tool) => tool.name === "arm_purge")!;
     const read = tools.find((tool) => tool.name === "read_gauge")!;
 
+    stage.children[0]?.children[2]?.dispatch("click", new Event("click"));
     expect((await arm.execute({})).ok).toBe(true);
     const firstExpiry = queuedExpiry.get(1);
     expect(
@@ -346,15 +376,15 @@ describe("Chapter 5 Two-Man Rule", () => {
       },
     });
 
-    const firstContext = chapterContext(
-      new FakeElement() as unknown as HTMLElement,
-    );
+    const firstStage = new FakeElement();
+    const firstContext = chapterContext(firstStage as unknown as HTMLElement);
     const chapter = CHAPTERS[5]!;
     chapter.mount(firstContext);
     const arm = chapter
       .tools(firstContext)
       .find((tool) => tool.name === "arm_purge")!;
 
+    firstStage.children[0]?.children[2]?.dispatch("click", new Event("click"));
     expect((await arm.execute({})).ok).toBe(true);
     const firstExpiry = queuedExpiry.get(1);
     expect(
@@ -369,11 +399,11 @@ describe("Chapter 5 Two-Man Rule", () => {
     expect(
       firstContext.speaker.say,
       "an expiry queued before unmount must not broadcast into an abandoned chapter",
-    ).toHaveBeenCalledTimes(2);
+    ).toHaveBeenCalledTimes(3);
     expect(
       firstContext.recorder.addHuman,
       "an expiry queued before unmount must not append a stale recorder entry",
-    ).toHaveBeenCalledTimes(1);
+    ).toHaveBeenCalledTimes(2);
     chapter.unmount();
   });
 });

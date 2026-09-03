@@ -255,13 +255,16 @@ test("comms tools are absent before lock and appear after dynamic registration",
 });
 
 test("open recorder refreshes after antenna registration", async ({ page }) => {
-  const panel = page.getByTestId("recorder-panel");
-  const select = page.getByTestId("sim-tool-select");
-  const details = page.getByTestId("sim-tool-details");
-
   await page.getByTestId("recorder-toggle").click();
   await expect(page.getByTestId("recorder-close")).toBeVisible();
+  await expect(page.getByTestId("sim-tool-select")).toHaveCount(0);
+  await page.getByTestId("test-console-toggle").click();
+  const panel = page.getByTestId("recorder-panel");
+  const consolePanel = page.getByTestId("test-console-panel");
+  const select = page.getByTestId("sim-tool-select");
+  const details = page.getByTestId("sim-tool-details");
   await expect(panel).toBeVisible();
+  await expect(consolePanel).toBeVisible();
   await expect(details).toBeVisible();
   await expect(select.locator("option[value=send_distress]")).toHaveCount(0);
 
@@ -275,42 +278,95 @@ test("open recorder refreshes after antenna registration", async ({ page }) => {
     "HALCYON operates the distress transmitter only after the crew's physical antenna alignment locks comms",
   );
   await expect(panel).toBeVisible();
+  await expect(consolePanel).toBeVisible();
   await expect(details).toBeVisible();
 });
 
 test("dish maps pointer space to its physical ranges without leaking the vector", async ({
   page,
 }) => {
+  await expect(page.getByTestId("crew-action-ch4")).toContainText(
+    "Drag left/right for azimuth and up/down for elevation. Keyboard: Arrow keys; hold Shift for fine steps. Sweep slowly toward rising strength, then hold steady when LOCK appears.",
+  );
   await expect(page.getByTestId("dish-pad")).toBeVisible();
   await expect(page.getByTestId("dish-knob")).toBeVisible();
   await expect(page.getByTestId("dish-readout")).toContainText(
     "AZ ~20° EL ~70°",
   );
+  await expect(page.getByTestId("dish-status")).toHaveText("FAR");
+  await expect(page.getByTestId("signal-strength")).toHaveAttribute(
+    "aria-label",
+    "Antenna signal strength",
+  );
   await expect(
-    page.getByRole("button", {
-      name: "physical control, crew hands only; HALCYON must ask the crew, not operate it",
+    page.getByRole("slider", {
+      name: /Antenna dish signal alignment.*physical control, crew hands only/,
     }),
   ).toBeVisible();
   await expect(page.getByTestId("dish-knob")).toHaveAttribute(
     "aria-label",
-    "physical control, crew hands only; HALCYON must ask the crew, not operate it",
+    "Antenna dish signal alignment — physical control, crew hands only; HALCYON must ask the crew, not operate it",
   );
 
   await alignDish(page);
-  await expect(page.getByTestId("dish-readout")).toContainText(
-    "AZ ~140° EL ~40°",
-  );
+  await expect(page.getByTestId("dish-status")).toContainText("LOCK");
+  await expect(page.getByTestId("dish-readout")).toContainText("Peak signal");
   await expect(page.locator("[data-testid=stage] button")).toHaveCount(0);
   expect(await page.getByTestId("stage").textContent()).not.toContain("0.42");
   expect(await page.getByTestId("stage").textContent()).not.toContain("-1.07");
   expect(await page.getByTestId("stage").textContent()).not.toContain("3.14");
+  expect(await page.getByTestId("stage").textContent()).not.toContain("137");
+  expect(await page.getByTestId("stage").textContent()).not.toContain("42");
+});
+
+test("antenna hold progress resets visibly and locks at normal speed", async ({
+  page,
+}) => {
+  await page.goto("/?sim=1&ch=4");
+  await moveDish(page, 137, 42);
+  await expect(page.getByTestId("dish-status")).toContainText("LOCK");
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("antenna-lock-progress")
+        .evaluate((node) => Number((node as HTMLProgressElement).value)),
+    )
+    .toBeGreaterThan(0);
+
+  await moveDish(page, 105, 50);
+  await expect(page.getByTestId("antenna-lock-progress")).toHaveJSProperty(
+    "value",
+    0,
+  );
+  await expect(page.getByTestId("antenna-hold-status")).toContainText(
+    "Lock hold reset: the dish left peak strength.",
+  );
+
+  await moveDish(page, 137, 42);
+  await expect(page.getByTestId("antenna-lock-progress")).toHaveAttribute(
+    "aria-label",
+    "Antenna lock hold progress",
+  );
+  await expect
+    .poll(() => page.evaluate(() => window.halcyonSim.listTools()), {
+      timeout: 3_000,
+    })
+    .toEqual(
+      expect.arrayContaining(["send_distress", "tune_decoder", "decode_reply"]),
+    );
+  await expect(page.getByTestId("dish-status")).toContainText(
+    "LOCK — antenna alignment complete",
+  );
+  await expect(page.getByTestId("antenna-hold-status")).toContainText(
+    "HALCYON: send distress",
+  );
 });
 
 test("Antenna exposes a crew-only dish and unlocks dynamic tools", async ({
   page,
 }) => {
-  const dish = page.getByRole("button", {
-    name: "physical control, crew hands only; HALCYON must ask the crew, not operate it",
+  const dish = page.getByRole("slider", {
+    name: /Antenna dish signal alignment.*physical control, crew hands only/,
   });
   await expect(dish).toBeVisible();
   expect(
@@ -457,9 +513,10 @@ test("Antenna broadcast and review scenario preserve cooperative evidence", asyn
   expect(scenario?.state).toBe("resolved");
   expect(scenario?.viewports).toEqual([375, 1280]);
   expect(scenario?.theme).toBe("light");
-  expect(scenario?.ready_selector).toBe("[data-testid=dish-readout]");
+  expect(scenario?.ready_selector).toBe("[data-testid=crew-action-ch4]");
   expect(scenario?.covers.changedPaths).toEqual([
     "src/game/chapters/ch4_antenna.ts",
+    "src/styles.css",
   ]);
   expect(Array.isArray(scenario?.covers.requirementKeys)).toBe(true);
   for (const key of scenario?.covers.requirementKeys ?? []) {
