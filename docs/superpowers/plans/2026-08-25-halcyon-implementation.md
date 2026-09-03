@@ -1,5 +1,12 @@
 # HALCYON Implementation Plan
 
+> **Historical planning artifact (2026-08-25).** This document preserves the
+> original build plan, including superseded local paths, repository names,
+> deadlines, and the planned Cloudflare deployment. HALCYON shipped from
+> https://github.com/jamies-labs/halcyon and is live on Vercel at
+> https://halcyon-opal.vercel.app/. See the root README for current setup and
+> testing instructions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship HALCYON — a WebMCP co-op puzzle game (human + agent crew a damaged starship) — live on Cloudflare Pages with a public MIT repo, in time for the OpenAI WebMCP Challenge deadline (2026-09-03 ~5 p.m. PT).

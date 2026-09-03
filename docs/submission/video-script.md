@@ -1,6 +1,10 @@
 # HALCYON demo video script
 
-**Target runtime:** Under three minutes. Record the page and WebMCP-capable
+> **Recording status:** This is the original pre-recording shot list. The final
+> narrated full playthrough runs 5:38 and is available at
+> https://youtu.be/5XmZJRSN-l0.
+
+**Original target runtime:** Under three minutes. Record the page and WebMCP-capable
 agent side by side where noted; keep ship audio audible beneath narration.
 
 ## 0:00 — Cold open: a dark hull

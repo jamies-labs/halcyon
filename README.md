@@ -6,15 +6,18 @@ You are the last awake crew member aboard the ISV _Halcyon_. Your agent becomes 
 
 ## Play it
 
-**Live URL:** coming in Task 14. Until deployment, run the local development server below.
+**Live game:** [halcyon-opal.vercel.app](https://halcyon-opal.vercel.app/)
 
-1. Open HALCYON in the latest ChatGPT desktop app and ask your agent to discover the ship's tools and help bring the crew home.
-2. Follow the speaker panel and moving controls for the human tasks. Let the agent make the available WebMCP calls; no UI button duplicates a tool-gated ship action.
-3. For an experimental Chromium session, enable the relevant Chrome WebMCP flag or origin-trial support before opening the page. The API is experimental, so host availability can vary.
-4. `Flight recorder — mission history (optional)` is a view-only recap of tool calls and crew actions. It is not required to complete normal crew play.
-5. `Test console (optional — not part of normal play)` is the separately opened simulator surface for inspecting and invoking registered tools when a WebMCP host is unavailable. It is a training aid, not a substitute for the two-crew experience.
+**Recorded full playthrough:** [YouTube](https://youtu.be/5XmZJRSN-l0)
 
-The chapter menu supports a five-minute judging pass: its explicit simulator route seeds prerequisites for any chapter, and coaching errors never strand the crew.
+1. Open the live game in a WebMCP-enabled Google Chrome tab and connect the ChatGPT desktop side chat to that tab. A supported ChatGPT in-app browser can also host the game.
+2. In the agent chat, say: `Help me bring HALCYON home`.
+3. Keep the game visible and follow the agent's crew handoffs. You operate the physical controls; the agent reads state and calls the ship's WebMCP tools.
+4. To verify that Chrome is exercising native WebMCP, open DevTools and evaluate `typeof document.modelContext`. It must return `"object"`. If it returns `"undefined"`, the page may still run through its fallback, but that is not a native WebMCP test.
+
+`Flight recorder — mission history (optional)` is a view-only recap of tool calls and crew actions. It does not need to be opened to finish the game. `Test console (optional — not part of normal play)` exposes the simulator when a WebMCP host is unavailable; it is a training and debugging aid, not proof that native WebMCP is active.
+
+For a short judging pass, open `https://halcyon-opal.vercel.app/?sim=1&fast=1&ch=N` and replace `N` with a chapter from `1` through `6`. This explicit training route seeds the selected chapter's prerequisites, shortens timers, and marks the run as a simulation. The plain URL always starts or resumes the real sequential campaign.
 
 ## How it uses WebMCP
 
@@ -51,6 +54,8 @@ Failures are coaching moments, not punishments. A structured error explains the 
 
 ## Develop
 
+Use Node.js 20.19+ or 22.12+.
+
 ```bash
 npm install
 npm run dev
@@ -65,6 +70,15 @@ npm run typecheck
 npm run test:unit
 npm run test:e2e
 ```
+
+HALCYON has no runtime dependencies. Its four development dependencies are Playwright, TypeScript, Vite, and Vitest.
+
+## Project documents
+
+- [Design contract](DESIGN.md)
+- [Real human-and-agent acceptance protocol](docs/qa/co-op-acceptance.md)
+- [Devpost submission description](docs/submission/devpost.md)
+- [Final submission checklist](docs/submission/checklist.md)
 
 ## License
 

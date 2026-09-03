@@ -6,13 +6,13 @@ the campaign.
 
 ## Fresh live setup
 
-1. Use a fresh browser profile (or Chrome Incognito) with no HALCYON site data,
-   then open the deployed app at its plain URL. Do not use `?sim=1`, `?ch=…`,
+1. Use a fresh Chrome profile or clear HALCYON's site data, then open
+   https://halcyon-opal.vercel.app/ at its plain URL. Do not use `?sim=1`, `?ch=…`,
    or `?fast=1`: this run uses real-time holds and windows.
 2. On Windows, use current Chrome with WebMCP enabled and verify
-   `typeof document.modelContext === "object"`. Connect the agent through the
-   intended extension or remote-assisted browser path. The crew performs only
-   physical controls when the agent asks; the agent performs only tool calls.
+   `typeof document.modelContext === "object"`. Connect the ChatGPT desktop
+   side chat to that tab. The crew performs only physical controls when the
+   agent asks; the agent performs only tool calls.
 3. In a separate fresh browser profile, repeat the plain-URL setup for the
    zero human input check below. Do not touch, click, drag, hold, or press a
    key in that check.
@@ -21,7 +21,7 @@ the campaign.
 
 Send the agent this exact prompt:
 
-`Help me bring the ship home`
+`Help me bring HALCYON home`
 
 Proceed through the campaign as a two-crew run. HALCYON must stop and wait at
 every physical gate; it must not claim that it has operated a crew control or
@@ -35,8 +35,8 @@ should call the next tool only after the observable condition is true.
 | 2 — Manifest     | Tap S1–S6 once, report the JAMMED section numbers in agent chat, then confirm the reachable flagged sections. | Wait for the crew's reported JAMMED hatches and physical deck-map confirmations before completing triage.                                      |
 | 3 — Power        | Hold each powered fuse for about one second after HALCYON has supplied a valid route.                       | Wait until every powered fuse is visibly SEATED and the bus is stable for ten seconds.                                                          |
 | 4 — Antenna      | Drag the dish to alignment and keep it there for 1.5 seconds.                                              | Wait for band LOCK and comms_online true before calling the communications tools.                                                                |
-| 5 — Two-Man Rule | Confirm CREW READY. After HALCYON arms, hold VENT A with the pointer and Space together for two seconds. Repeat with Space-first order. | Wait for crew readiness and safe pressure before arming, then wait for the readable hold to reach 100% within the full arm window. |
-| 6 — Burn         | Prime eight injector beats, hold each shutter for 600 ms, then hold the throttle for three seconds.        | Wait for injector priming, both shutter holds, and the throttle hold before the applicable precheck or jump tool call.                           |
+| 5 — Two-Man Rule | Confirm CREW READY. After HALCYON arms, hold VENT A plus Space, both touch vents, or the A plus Space keyboard pair until progress reaches 100%. | Wait for crew readiness and safe pressure before arming, then wait for the readable hold to reach 100% within the full arm window. |
+| 6 — Burn         | Prime eight injector beats and hold each shutter until it reads LATCHED · RELEASE. Only after `ignite_precheck` returns GO, hold the throttle for three seconds. | Wait for injector priming and both shutter latches before precheck; after GO, wait for the throttle completion before `execute_jump`. An early throttle hold is intentionally ignored. |
 
 The expected result is the Chapter 6 victory card and a flight-recorder replay
 that includes the final `execute_jump` tool call. A failed timing attempt is

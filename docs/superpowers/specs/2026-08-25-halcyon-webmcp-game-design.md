@@ -1,5 +1,11 @@
 # HALCYON — design spec
 
+> **Historical design artifact (2026-08-25).** This captures the original
+> competition plan. HALCYON ultimately shipped at
+> https://halcyon-opal.vercel.app/ from
+> https://github.com/jamies-labs/halcyon. See the root README for current play,
+> testing, and deployment information.
+
 **Date:** 2026-08-25
 **Target:** OpenAI WebMCP Challenge (submission deadline 2026-09-03, ~5 p.m. PT — confirm exact time on Devpost at registration; winners 2026-09-23)
 **Devpost:** https://webmcp.devpost.com/ · **Challenge page:** https://openai.com/webmcp-challenge/ · **Standard:** https://github.com/webmachinelearning/webmcp
