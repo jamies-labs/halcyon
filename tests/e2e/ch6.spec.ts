@@ -169,6 +169,9 @@ test("Burn gate responses return crew handoff fields for valid errors and succes
   }
   await holdFor(page, "shutter-left", 300);
   await holdFor(page, "shutter-right", 300);
+
+  // An early hold cannot be banked before HALCYON returns GO.
+  await holdFor(page, "throttle", 1_400);
   const precheckGo = await invoke(page, "ignite_precheck");
   expect(precheckGo.outcome.ok).toBe(true);
 
